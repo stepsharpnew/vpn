@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:test_app/constants/app_colors.dart';
 import 'package:test_app/constants/app_constants.dart';
 import 'package:test_app/models/country.dart';
+import 'package:test_app/widgets/app_drawer.dart';
 import 'package:test_app/widgets/connection_status.dart';
 import 'package:test_app/widgets/country_list_bottom_sheet.dart';
 import 'package:test_app/widgets/country_selector_button.dart';
 import 'package:test_app/widgets/gradient_header.dart';
 import 'package:test_app/widgets/gradient_title.dart';
+import 'package:test_app/widgets/menu_button.dart';
 import 'package:test_app/widgets/power_button.dart';
 import 'package:test_app/widgets/section_header.dart';
 import 'package:test_app/widgets/speed_display.dart';
@@ -66,9 +68,17 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+
+  void _openMenu() {
+    _scaffoldKey.currentState?.openEndDrawer();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      key: _scaffoldKey,
+      endDrawer: const AppDrawer(),
       body: SafeArea(
         bottom: false,
         child: Column(
@@ -77,25 +87,37 @@ class _HomeScreenState extends State<HomeScreen> {
             Expanded(
               flex: 1,
               child: GradientHeader(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                child: Stack(
                   children: [
-                    // Заголовок VPN
-                    const Padding(
-                      padding: EdgeInsets.only(top: 20),
-                      child: GradientTitle(),
+                    Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        // Заголовок VPN
+                        const Padding(
+                          padding: EdgeInsets.only(top: 20),
+                          child: GradientTitle(),
+                        ),
+                        const SizedBox(height: 40),
+                        // Кнопка питания
+                        PowerButton(
+                          isConnected: _isConnected,
+                          onTap: _toggleConnection,
+                        ),
+                        const SizedBox(height: 24),
+                        // Статус подключения
+                        ConnectionStatus(
+                          isConnected: _isConnected,
+                          ipAddress: _ipAddress,
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 40),
-                    // Кнопка питания
-                    PowerButton(
-                      isConnected: _isConnected,
-                      onTap: _toggleConnection,
-                    ),
-                    const SizedBox(height: 24),
-                    // Статус подключения
-                    ConnectionStatus(
-                      isConnected: _isConnected,
-                      ipAddress: _ipAddress,
+                    // Кнопка меню в правом верхнем углу
+                    Positioned(
+                      top: 20,
+                      right: 20,
+                      child: MenuButton(
+                        onTap: _openMenu,
+                      ),
                     ),
                   ],
                 ),
