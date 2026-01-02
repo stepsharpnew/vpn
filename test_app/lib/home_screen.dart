@@ -6,6 +6,7 @@ import 'package:test_app/widgets/connection_status.dart';
 import 'package:test_app/widgets/country_list_bottom_sheet.dart';
 import 'package:test_app/widgets/country_selector_button.dart';
 import 'package:test_app/widgets/gradient_header.dart';
+import 'package:test_app/widgets/gradient_title.dart';
 import 'package:test_app/widgets/power_button.dart';
 import 'package:test_app/widgets/section_header.dart';
 import 'package:test_app/widgets/speed_display.dart';
@@ -20,15 +21,34 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   bool _isConnected = false;
+  String? _ipAddress;
   Country _selectedCountry = const Country(
     name: AppConstants.defaultCountry,
     flag: AppConstants.defaultCountryFlag,
   );
 
+  // Примерные значения скорости (можно заменить на реальные)
+  String get _downloadSpeed => _isConnected ? '10.2' : '0.0';
+  String get _uploadSpeed => _isConnected ? '5.2' : '0.0';
+
   void _toggleConnection() {
     setState(() {
       _isConnected = !_isConnected;
+      if (_isConnected) {
+        // Генерируем примерный IP адрес при подключении
+        _ipAddress = _generateFakeIp();
+      } else {
+        // Очищаем IP при отключении
+        _ipAddress = null;
+      }
     });
+  }
+
+  /// Генерирует примерный IP адрес для демонстрации
+  String _generateFakeIp() {
+    // Генерируем случайный IP в диапазоне VPN серверов
+    final random = DateTime.now().millisecondsSinceEpoch % 255;
+    return '185.${100 + (random % 50)}.${50 + (random % 100)}.${100 + (random % 155)}';
   }
 
   void _onCountrySelected(Country country) {
@@ -49,26 +69,38 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('VPN')),
-      body: Column(
-        children: [
-          // Верхняя часть с градиентом
-          Expanded(
-            flex: 1,
-            child: GradientHeader(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  PowerButton(
-                    isConnected: _isConnected,
-                    onTap: _toggleConnection,
-                  ),
-                  const SizedBox(height: 24),
-                  ConnectionStatus(isConnected: _isConnected),
-                ],
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            // Верхняя часть с градиентом
+            Expanded(
+              flex: 1,
+              child: GradientHeader(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    // Заголовок VPN
+                    const Padding(
+                      padding: EdgeInsets.only(top: 20),
+                      child: GradientTitle(),
+                    ),
+                    const SizedBox(height: 40),
+                    // Кнопка питания
+                    PowerButton(
+                      isConnected: _isConnected,
+                      onTap: _toggleConnection,
+                    ),
+                    const SizedBox(height: 24),
+                    // Статус подключения
+                    ConnectionStatus(
+                      isConnected: _isConnected,
+                      ipAddress: _ipAddress,
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
           // Нижняя часть с информацией
           Expanded(
             flex: 1,
@@ -79,7 +111,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    SpeedDisplay(downloadSpeed: '10.2', uploadSpeed: '5.2'),
+                    SpeedDisplay(
+                      downloadSpeed: _downloadSpeed,
+                      uploadSpeed: _uploadSpeed,
+                    ),
                     const SizedBox(height: 32),
                     const SectionHeader(title: 'Location:'),
                     const SizedBox(height: 16),
@@ -95,7 +130,8 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
           ),
-        ],
+          ],
+        ),
       ),
     );
   }
