@@ -89,26 +89,26 @@ class _HomeScreenState extends State<HomeScreen> {
               child: GradientHeader(
                 child: Stack(
                   children: [
+                    // Фиксированная структура, чтобы элементы не прыгали
                     Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        // Заголовок VPN
-                        const Padding(
-                          padding: EdgeInsets.only(top: 20),
-                          child: GradientTitle(),
-                        ),
+                        // Заголовок VPN (фиксированная высота)
+                        const SizedBox(height: 20),
+                        const GradientTitle(),
                         const SizedBox(height: 40),
-                        // Кнопка питания
+                        // Кнопка питания (фиксированная высота)
                         PowerButton(
                           isConnected: _isConnected,
                           onTap: _toggleConnection,
                         ),
                         const SizedBox(height: 24),
-                        // Статус подключения
+                        // Статус подключения (фиксированная высота)
                         ConnectionStatus(
                           isConnected: _isConnected,
                           ipAddress: _ipAddress,
                         ),
+                        const SizedBox(height: 20), // Компенсация для фиксированной высоты
                       ],
                     ),
                     // Кнопка меню в правом верхнем углу
