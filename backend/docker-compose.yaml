@@ -1,0 +1,42 @@
+services:
+  db: 
+    image: postgres:15
+    container_name: vpn_api_db
+    env_file:
+      - .env-non-dev
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - 5432:5432
+    networks:
+      - app_network
+
+  backend:
+    build:
+      context: .
+    container_name: vpn_api_backend
+    env_file:
+      - .env-non-dev
+    depends_on:
+      - db
+      - cache
+    command: ["/backend/docker/app.sh"]
+    ports:
+      - 8000:8000
+    networks:
+      - app_network
+    
+  cache:
+    image: redis
+    container_name: vpn_api_cache
+    ports:
+      - 6379:6379
+    networks:
+      - app_network
+
+volumes:
+  postgres_data:
+
+networks:
+  app_network:
+    driver: bridge

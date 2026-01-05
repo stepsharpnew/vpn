@@ -1,0 +1,59 @@
+name: CI/CD for vpn_api
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    # 1. Checkout кода
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    # 2. Настройка SSH
+    - name: Set up SSH
+      uses: webfactory/ssh-agent@v0.9.0
+      with:
+        ssh-private-key: ${{ secrets.DEPLOY_SSH_KEY }}
+    
+    # 3. Установим docker-compose
+    - name: Install Docker Compose
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y docker-compose
+    
+    # 4. Создаём файл .env-non-dev из секретов
+    - name: Create .env-non-dev file
+      run: echo "${{ secrets.ENV_NON_DEV }}" > ./.env-non-dev
+
+    # 6. Проверка Docker Compose
+    - name: Lint Docker Compose
+      run: docker-compose -f docker-compose.yaml config
+
+    # 7. Сборка Docker образов
+    - name: Build Docker images
+      run: |
+        docker-compose -f docker-compose.yaml build
+
+    # 8. Копирование файлов на сервер
+    - name: Deploy files to server
+      run: |
+        ssh -o StrictHostKeyChecking=no losdan@176.108.242.199 "mkdir -p ~/vpn_api"
+        rsync -avz --exclude=".git" ./ losdan@176.108.242.199:~/vpn_api
+
+    # 10. Запуск Docker Compose на сервере
+    - name: Restart application
+      run: |
+        ssh -o StrictHostKeyChecking=no losdan@176.108.242.199 << 'EOF'
+          cd ~/vpn_api
+          sudo docker-compose down
+          sudo docker-compose build
+          sudo docker-compose up -d
+        EOF
