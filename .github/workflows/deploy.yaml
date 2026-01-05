@@ -4,9 +4,13 @@ on:
   push:
     branches:
       - main
+    paths:
+      - 'backend/**'
   pull_request:
     branches:
       - main
+    paths:
+      - 'backend/**'
 
 jobs:
   build-and-deploy:
@@ -31,22 +35,22 @@ jobs:
     
     # 4. Создаём файл .env-non-dev из секретов
     - name: Create .env-non-dev file
-      run: echo "${{ secrets.ENV_NON_DEV }}" > ./.env-non-dev
+      run: echo "${{ secrets.ENV_NON_DEV }}" > ./backend/.env-non-dev
 
     # 6. Проверка Docker Compose
     - name: Lint Docker Compose
-      run: docker-compose -f docker-compose.yaml config
+      run: docker-compose -f ./backend/docker-compose.yaml config
 
     # 7. Сборка Docker образов
     - name: Build Docker images
       run: |
-        docker-compose -f docker-compose.yaml build
+        docker-compose -f ./backend/docker-compose.yaml build
 
     # 8. Копирование файлов на сервер
     - name: Deploy files to server
       run: |
         ssh -o StrictHostKeyChecking=no losdan@176.108.242.199 "mkdir -p ~/vpn_api"
-        rsync -avz --exclude=".git" ./ losdan@176.108.242.199:~/vpn_api
+        rsync -avz --exclude=".git" ./backend losdan@176.108.242.199:~/vpn_api
 
     # 10. Запуск Docker Compose на сервере
     - name: Restart application
