@@ -8,6 +8,7 @@ class AppDrawer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Drawer(
+      backgroundColor: AppColors.darkSurface,
       child: Column(
         children: [
           // Заголовок с аватаром
@@ -24,8 +25,8 @@ class AppDrawer extends StatelessWidget {
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
-                  AppColors.primaryBlue,
-                  AppColors.primaryPurple,
+                  AppColors.neonBlue,
+                  AppColors.neonPurple,
                 ],
               ),
             ),
@@ -148,11 +149,12 @@ class _DrawerItem extends StatelessWidget {
     return ListTile(
       leading: Icon(
         icon,
-        color: AppColors.primaryBlue,
+        color: AppColors.neonBlue,
       ),
       title: Text(
         title,
         style: const TextStyle(
+          color: AppColors.textPrimary,
           fontSize: 16,
           fontWeight: FontWeight.w500,
         ),

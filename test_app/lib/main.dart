@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:test_app/constants/app_colors.dart';
 import 'home_screen.dart';
 
 void main() {
@@ -12,10 +13,17 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'VPN',
-      debugShowCheckedModeBanner: false, // Убираем DEBUG надпись
+      debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
         useMaterial3: true,
+        brightness: Brightness.dark,
+        scaffoldBackgroundColor: AppColors.darkBackground,
+        colorScheme: const ColorScheme.dark(
+          primary: AppColors.neonBlue,
+          secondary: AppColors.neonPurple,
+          surface: AppColors.darkSurface,
+          background: AppColors.darkBackground,
+        ),
       ),
       home: const HomeScreen(),
     );
