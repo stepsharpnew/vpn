@@ -57,8 +57,8 @@ class _HomeScreenState extends State<HomeScreen> {
             Column(
               children: [
                 // Картинка выше - занимает верхнюю часть
-                Expanded(flex: 2, child: Container()),
-                // Кнопка Connect под картинкой
+                Expanded(flex: 5, child: Container()),
+                // Кнопка Connect под картинкой (опущена ниже)
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 24),
                   child: ConnectButton(

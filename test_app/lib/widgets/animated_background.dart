@@ -21,7 +21,7 @@ class AnimatedBackground extends StatelessWidget {
         children: [
           // Изображение фона
           Image.asset(
-            'assets/images/FIX.png',
+            'assets/images/new_phone.png',
             fit: BoxFit.cover,
             errorBuilder: (context, error, stackTrace) {
               // Если изображение не найдено, показываем темный фон
