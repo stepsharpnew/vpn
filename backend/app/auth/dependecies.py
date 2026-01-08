@@ -1,4 +1,4 @@
-from fastapi import Request, Depends, Response
+from fastapi import Request, Depends, Response, HTTPException, status
 from jose import jwt, JWTError
 from datetime import datetime, timezone
 
@@ -23,9 +23,27 @@ from app.exceptions import NoTokenExeption, UncorectTokenExeption, ExpireTokenEx
 #         raise NoTokenExeption
 #     return token
 
+def get_access_token_from_header(request: Request) -> str:
+    """Извлекает access token из заголовка Authorization"""
+    authorization = request.headers.get('Authorization')
+    if not authorization:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail='Отсутствует заголовок Authorization'
+        )
+    
+    parts = authorization.split(' ')
+    if len(parts) != 2 or parts[0].lower() != 'bearer':
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail='Неверный формат заголовка Authorization'
+        )
+    
+    return parts[1]
+
 async def get_current_user(response: Response,
                            request: Request,
-                           access_token: str):
+                           access_token: str = Depends(get_access_token_from_header)):
                         #    refresh_token: str = Depends(get_refresh_token)):
     try:
         payload = jwt.decode(
