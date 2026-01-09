@@ -13,4 +13,3 @@ class VpnConfig(BaseModel):
     public_key: Optional[str] = None
     # Дополнительные поля для WireGuard/OpenVPN конфигурации
     config_data: Optional[dict] = None
-

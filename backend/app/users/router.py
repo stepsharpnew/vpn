@@ -7,9 +7,10 @@ from app.exceptions import VerifyOldPasswordException
 from app.users.dao import UsersDAO, UsersVipDAO
 from app.users.models import Users, UsersVip
 from app.users.schemas import SChangePassword, SForgotPassword, SVerifyCode
-from app.connect.schemas import VpnConfig
+from app.sessions.schemas import VpnConfig
 from app.sessions.dao import SessionsDAO
 from app.servers.models import Servers
+from app.servers.dao import ServersDAO
 from app.dao.base import BaseDAO
 import uuid
 
@@ -58,10 +59,6 @@ async def verify_code(user_data: SVerifyCode):
         redis.delete(user_data.email)
         return True
     return False
-
-
-class ServersDAO(BaseDAO):
-    model = Servers
 
 
 @router.get('/me/vpn-config', response_model=VpnConfig)

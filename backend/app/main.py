@@ -2,11 +2,11 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.auth.router import router as router_auth
 from app.users.router import router as router_user
-from app.connect.router import router as router_connect
+from app.sessions.router import router as router_sessions
 
 app = FastAPI()
 
-# Настройка CORS для работы с мобильным приложением
+# Настройка CORS для работы с мобильным приложением 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  # В продакшене укажите конкретные домены
@@ -17,4 +17,4 @@ app.add_middleware(
 
 app.include_router(router_auth)
 app.include_router(router_user)
-app.include_router(router_connect)
+app.include_router(router_sessions)

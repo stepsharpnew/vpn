@@ -6,12 +6,9 @@ from app.servers.models import Servers
 from app.dao.base import BaseDAO
 import uuid
 
-router = APIRouter(prefix='/connect',
-                   tags=['Подключение VPN'])
+router = APIRouter(prefix='/sessions',
+                   tags=['Сессии'])
 
-
-class ServersDAO(BaseDAO):
-    model = Servers
 
 
 @router.post('/request', response_model=VpnConfig)
@@ -72,4 +69,3 @@ async def connect_request(request: ConnectRequest):
     )
     
     return vpn_config
-

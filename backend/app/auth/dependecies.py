@@ -8,13 +8,6 @@ from app.auth.dao import RefreshTokensDAO
 from app.users.dao import UsersDAO, UsersVipDAO
 from app.exceptions import NoTokenExeption, UncorectTokenExeption, ExpireTokenExeption
 
-# def get_access_token(request: Request):
-#     try:
-#         token = request.cookies['access_token']
-#     except:
-#         raise NoTokenExeption
-#     return token
-
 
 # def get_refresh_token(request: Request):
 #     try:
@@ -23,7 +16,7 @@ from app.exceptions import NoTokenExeption, UncorectTokenExeption, ExpireTokenEx
 #         raise NoTokenExeption
 #     return token
 
-def get_access_token_from_header(request: Request) -> str:
+def get_access_token(request: Request) -> str:
     """Извлекает access token из заголовка Authorization"""
     authorization = request.headers.get('Authorization')
     if not authorization:
@@ -35,7 +28,7 @@ def get_access_token_from_header(request: Request) -> str:
     parts = authorization.split(' ')
     if len(parts) != 2 or parts[0].lower() != 'bearer':
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
+            status_code=status.HTTP_401_UNAUTHORIZED, # TODO: изменить на более точный код ошибки
             detail='Неверный формат заголовка Authorization'
         )
     
@@ -43,7 +36,7 @@ def get_access_token_from_header(request: Request) -> str:
 
 async def get_current_user(response: Response,
                            request: Request,
-                           access_token: str = Depends(get_access_token_from_header)):
+                           access_token: str = Depends(get_access_token)):
                         #    refresh_token: str = Depends(get_refresh_token)):
     try:
         payload = jwt.decode(
