@@ -67,18 +67,18 @@ async def get_current_user(response: Response,
     
     expire: str = payload['exp']
     if (not expire) or (int(expire) < datetime.now(timezone.utc).timestamp()):
-        refresh_token_data = await RefreshTokensDAO.find_refresh_token(user_id=user_id, device_id=device_id)
+        # refresh_token_data = await RefreshTokensDAO.find_refresh_token(user_id=user_id, device_id=device_id)
         
-        if refresh_token_data:
-            if int(refresh_token_data.expires_at) > datetime.now(timezone.utc).timestamp():
-                access_token = create_access_token({'sub': user_id})
-                ## решить как отправить обратно новый аксес
-            else:
-                await UsersDAO.update_by_id(user_id, is_vip=False) 
-                raise ExpireTokenExeption
-        else:
-            await UsersDAO.update_by_id(user_id, is_vip=False) 
-            raise ExpireTokenExeption
+        # if refresh_token_data:
+        #     if int(refresh_token_data.expires_at) > datetime.now(timezone.utc).timestamp():
+        #         access_token = create_access_token({'sub': user_id})
+        #         ## решить как отправить обратно новый аксес
+        #     else:
+        #         await UsersDAO.update_by_id(user_id, is_vip=False) 
+        #         raise ExpireTokenExeption
+        # else:
+        #     await UsersDAO.update_by_id(user_id, is_vip=False) 
+        #     raise ExpireTokenExeption
 
         await UsersDAO.update_by_id(user_id, is_vip=False) 
         raise ExpireTokenExeption

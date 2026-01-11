@@ -9,7 +9,7 @@ class RefreshTokensDAO(BaseDAO):
 
     
     @classmethod
-    async def find_refresh_token(cls, user_id: str, token: str, device_id: str):
+    async def find_refresh_token(cls, user_id: str, device_id: str):
         async with async_session_maker() as session:
             query = select(cls.model.__table__.columns).limit(1).filter_by(user_id=user_id, device_id=device_id).order_by(cls.model.expires_at.desc())
             result = await session.execute(query)

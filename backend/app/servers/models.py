@@ -26,7 +26,7 @@ class Servers(Base):
     h2: Mapped[str_null]
     h3: Mapped[str_null]
     h4: Mapped[str_null]
-    isvip: Mapped[bool] = mapped_column(nullable=True)
+    is_vip: Mapped[bool] = mapped_column(nullable=True)
     enable: Mapped[bool] = mapped_column(nullable=True, default=True)
 
     def __str__(self):

@@ -1,18 +1,24 @@
 from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Response, Depends, Request, HTTPException, status
 from app.config import settings
-from app.exceptions import ErrorLoginException, ExistingUserExeption
+from app.exceptions import ErrorLoginException, ExistingUserExeption, ExpireTokenExeption, UncorectTokenExeption
 from app.auth.auth import authenticate_user, create_access_token, get_password_hash, create_refresh_token
 from app.auth.dao import RefreshTokensDAO
-from app.auth.dependecies import get_current_user
-from app.auth.schemas import SUserRegister, SUserLogin, SRefreshToken
+from app.auth.dependecies import get_current_user, get_device_id_token
+from app.auth.schemas import SUserRegister, SUserLogin, SFirstTimeInitUser
 from app.users.dao import UsersDAO
 from app.users.models import Users
+from jose import jwt, JWTError
 
 
 router = APIRouter(prefix='/auth',
                    tags=['Авторизация'],)
 
+
+@router.post('/first_time_init_user')
+async def first_time_init_user(user_data: SFirstTimeInitUser):
+    await UsersDAO.add(device_id = user_data.device_id)
+    return 'ok'
 
 @router.post('/register')
 async def register_user(user_data: SUserRegister, current_user: Users = Depends(get_current_user)):
@@ -56,35 +62,34 @@ async def me_user(current_user: Users = Depends(get_current_user)):
     return current_user
 
 
-# @router.post('/refresh')
-# async def refresh_token(response: Response, refresh_data: SRefreshToken, request: Request):
-#     """
-#     Обновление access token по refresh token
-#     """
-#     refresh_token = refresh_data.refresh_token
-#     if not refresh_token:
-#         raise HTTPException(
-#             status_code=status.HTTP_401_UNAUTHORIZED,
-#             detail='Отсутствует refresh token'
-#         )
+@router.post('/refresh')
+async def refresh_token(response: Response, request: Request, access_token: str, device_id: str = Depends(get_device_id_token)):
+    """
+    Обновление access token 
+    """
+    try:
+        payload = jwt.decode(
+            access_token, settings.SECRET_WORD, settings.HASH_ALGORITHM, options={"verify_exp": False}
+        )
+    except JWTError as e:
+        raise UncorectTokenExeption
+
+    user_id: str = payload['sub']
+    if not user_id:
+        raise UncorectTokenExeption
+
+    refresh_token_data = await RefreshTokensDAO.find_refresh_token(user_id=user_id, device_id=device_id)
+        
+    if refresh_token_data:
+        if int(refresh_token_data.expires_at) > datetime.now(timezone.utc).timestamp():
+            new_access_token = create_access_token({'sub': user_id})
+            await UsersDAO.update_by_id(user_id, is_vip=True)
+            return {'access_token': new_access_token}
+        else:
+            await UsersDAO.update_by_id(user_id, is_vip=False) 
+            raise ExpireTokenExeption
+    else:
+        await UsersDAO.update_by_id(user_id, is_vip=False) 
+        raise ExpireTokenExeption
     
-#     refresh_token_data = await RefreshTokensDAO.find_by_token(token=refresh_token)
     
-#     if not refresh_token_data:
-#         raise HTTPException(
-#             status_code=status.HTTP_401_UNAUTHORIZED,
-#             detail='Неверный refresh token'
-#         )
-    
-#     # Проверяем срок действия
-#     expires_at = int(refresh_token_data['expires_at'])
-#     if expires_at < datetime.now(timezone.utc).timestamp():
-#         raise HTTPException(
-#             status_code=status.HTTP_401_UNAUTHORIZED,
-#             detail='Refresh token истек'
-#         )
-    
-#     user_id = refresh_token_data['user_id']
-#     new_access_token = create_access_token({'sub': str(user_id)})
-    
-#     return {'access_token': new_access_token}

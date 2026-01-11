@@ -36,6 +36,6 @@ VerifyOldPasswordException = HTTPException(
 )
 
 UserIsBlocked= HTTPException(
-    status_code=status.HTTP_401_CONFLICT,
+    status_code=status.HTTP_401_UNAUTHORIZED,
     detail='Данный пользователь заблокирован',
 )

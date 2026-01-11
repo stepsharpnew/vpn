@@ -4,10 +4,9 @@ from app.cache import redis
 from app.auth.auth import authenticate_user, get_password_hash
 from app.auth.dependecies import get_current_user
 from app.exceptions import VerifyOldPasswordException
-from app.users.dao import UsersDAO, UsersVipDAO
-from app.users.models import Users, UsersVip
+from app.users.dao import UsersDAO
+from app.users.models import Users
 from app.users.schemas import SChangePassword, SForgotPassword, SVerifyCode
-from app.sessions.schemas import VpnConfig
 from app.sessions.dao import SessionsDAO
 from app.servers.models import Servers
 from app.servers.dao import ServersDAO
@@ -38,7 +37,7 @@ async def change_password(user_data: SChangePassword,
 async def get_profile_by_id(profile_id: str):
     profile = None
     try:
-        profile = await UsersVipDAO.find_one_or_none(id=profile_id)
+        profile = await UsersDAO.find_one_or_none(id=profile_id)
     except:
         pass
 
