@@ -12,23 +12,12 @@ class Users(Base):
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid_utils.uuid7)
     device_id: Mapped[str_not_null] = mapped_column(unique=True)
     is_blocked: Mapped[bool] = mapped_column(default=False)
-    mac_address: Mapped[str_null]
+    is_vip: Mapped[bool] = mapped_column(default=False)
+    email: Mapped[str_null] = mapped_column(unique=True)
+    hashed_password: Mapped[str_null]
     created_at: Mapped[created_at]
 
     def __str__(self):
         return f'{self.device_id}'
 
 
-class UsersVip(Base):
-    __tablename__ = 'users_vip'
-
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid_utils.uuid7)
-    email: Mapped[str_not_null] = mapped_column(unique=True)
-    hashed_password: Mapped[str_not_null]
-    mac_address1: Mapped[str_null]
-    mac_address2: Mapped[str_null]
-    mac_address3: Mapped[str_null]
-    created_at: Mapped[created_at]
-
-    def __str__(self):
-        return f'{self.user_id}'

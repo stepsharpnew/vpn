@@ -1,9 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from app.connect.schemas import ConnectRequest, VpnConfig
+from app.sessions.schemas import ConnectRequest, VpnConfig
 from app.users.dao import UsersDAO
 from app.sessions.dao import SessionsDAO
 from app.servers.models import Servers
 from app.dao.base import BaseDAO
+from app.servers.dao import ServersDAO
 import uuid
 
 router = APIRouter(prefix='/sessions',

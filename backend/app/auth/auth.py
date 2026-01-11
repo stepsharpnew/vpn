@@ -30,6 +30,6 @@ def create_refresh_token() -> str:
     return token
 
 async def authenticate_user(email: EmailStr, password: str):
-    user = await UsersVipDAO.find_one_or_none(email=email)
+    user = await UsersDAO.find_one_or_none(email=email)
     if user and verify_password(password, user.hashed_password):
         return user

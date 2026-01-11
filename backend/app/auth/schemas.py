@@ -8,5 +8,5 @@ class SUserRegister(BaseModel):
     email: EmailStr
     password: str
 
-class SRefreshToken(BaseModel):
-    refresh_token: str
+# class SRefreshToken(BaseModel):
+#     refresh_token: str

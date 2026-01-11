@@ -34,3 +34,8 @@ VerifyOldPasswordException = HTTPException(
     status_code=status.HTTP_409_CONFLICT,
     detail='Старый пароль не совпадает',
 )
+
+UserIsBlocked= HTTPException(
+    status_code=status.HTTP_401_CONFLICT,
+    detail='Данный пользователь заблокирован',
+)
