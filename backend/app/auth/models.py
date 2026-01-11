@@ -10,10 +10,10 @@ class RefreshTokens(Base):
     __tablename__ = 'refresh_tokens'
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid_utils.uuid7)
-    user_id: Mapped[uuid.UUID] = mapped_column(nullable=True)
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey('users.id'))
     token: Mapped[str_null] 
     expires_at: Mapped[str_null]
-    user_agent: Mapped[str_null]
+    device_id: Mapped[str_null]
 
     def __str__(self):
         return f'{self.user_id}'
