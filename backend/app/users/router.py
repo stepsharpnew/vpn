@@ -1,12 +1,17 @@
 from random import randint
-from fastapi import APIRouter, Response, Depends
+from fastapi import APIRouter, Response, Depends, HTTPException, status
 from app.cache import redis
 from app.auth.auth import authenticate_user, get_password_hash
 from app.auth.dependecies import get_current_user
 from app.exceptions import VerifyOldPasswordException
-from app.users.dao import UsersDAO, UsersVipDAO
-from app.users.models import Users, UsersVip
+from app.users.dao import UsersDAO
+from app.users.models import Users
 from app.users.schemas import SChangePassword, SForgotPassword, SVerifyCode
+from app.sessions.dao import SessionsDAO
+from app.servers.models import Servers
+from app.servers.dao import ServersDAO
+from app.dao.base import BaseDAO
+import uuid
 
 router = APIRouter(prefix='/users',
                    tags=['Пользователи'],)
@@ -14,7 +19,7 @@ router = APIRouter(prefix='/users',
 
 @router.post('/change_password')
 async def change_password(user_data: SChangePassword,
-                          current_user: UsersVip = Depends(get_current_user)):
+                          current_user: Users = Depends(get_current_user)):
     verify_old_password = await authenticate_user(current_user['email'],
                                                   user_data.old_password)
     
@@ -23,7 +28,7 @@ async def change_password(user_data: SChangePassword,
     
     new_hashed_password = get_password_hash(user_data.new_password)
 
-    await UsersVipDAO.update_by_id(current_user['id'],
+    await UsersDAO.update_by_id(current_user['id'],
                                 hashed_password = new_hashed_password)
     return 'ok'
 
@@ -32,7 +37,7 @@ async def change_password(user_data: SChangePassword,
 async def get_profile_by_id(profile_id: str):
     profile = None
     try:
-        profile = await UsersVipDAO.find_one_or_none(id=profile_id)
+        profile = await UsersDAO.find_one_or_none(id=profile_id)
     except:
         pass
 
@@ -53,3 +58,5 @@ async def verify_code(user_data: SVerifyCode):
         redis.delete(user_data.email)
         return True
     return False
+
+

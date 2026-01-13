@@ -9,8 +9,15 @@ class RefreshTokensDAO(BaseDAO):
 
     
     @classmethod
-    async def find_refresh_token(cls, user_id: str, token: str, user_agent: str):
+    async def find_refresh_token(cls, user_id: str, device_id: str):
         async with async_session_maker() as session:
-            query = select(cls.model.__table__.columns).limit(1).filter_by(user_id=user_id, token=token, user_agent=user_agent).order_by(cls.model.expires_at.desc())
+            query = select(cls.model.__table__.columns).limit(1).filter_by(user_id=user_id, device_id=device_id).order_by(cls.model.expires_at.desc())
             result = await session.execute(query)
             return result.mappings().one_or_none()
+
+    # @classmethod
+    # async def find_by_token(cls, token: str):
+    #     async with async_session_maker() as session:
+    #         query = select(cls.model.__table__.columns).filter_by(token=token)
+    #         result = await session.execute(query)
+    #         return result.mappings().one_or_none()

@@ -7,3 +7,7 @@ class SUserLogin(BaseModel):
 class SUserRegister(BaseModel):
     email: EmailStr
     password: str
+
+class SFirstTimeInitUser(BaseModel):
+    device_id: str
+    
