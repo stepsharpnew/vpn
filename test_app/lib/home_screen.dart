@@ -5,11 +5,11 @@ import 'package:test_app/models/country.dart';
 import 'package:test_app/models/vpn_config.dart';
 import 'package:test_app/services/api_service.dart';
 import 'package:test_app/services/storage_service.dart';
-import 'package:test_app/widgets/animated_background.dart';
 import 'package:test_app/widgets/app_drawer.dart';
-import 'package:test_app/widgets/bottom_navigation.dart';
 import 'package:test_app/widgets/connect_button.dart';
+import 'package:test_app/widgets/gradient_background.dart';
 import 'package:test_app/widgets/menu_button.dart';
+import 'package:test_app/widgets/vpn_lottie_animation.dart';
 import 'package:test_app/widgets/vpn_status_card.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -22,7 +22,6 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   bool _isConnected = false;
   bool _isLoading = false;
-  int _currentNavIndex = 0;
   String? _deviceId;
   VpnConfig? _currentVpnConfig;
   Country _selectedCountry = const Country(
@@ -132,16 +131,20 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  void _onNavTap(int index) {
-    setState(() {
-      _currentNavIndex = index;
-    });
-  }
-
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   void _openMenu() {
     _scaffoldKey.currentState?.openEndDrawer();
+  }
+
+  VpnConnectionState get _connectionState {
+    if (_isLoading) {
+      return VpnConnectionState.connecting;
+    } else if (_isConnected) {
+      return VpnConnectionState.connected;
+    } else {
+      return VpnConnectionState.disconnected;
+    }
   }
 
   @override
@@ -153,35 +156,24 @@ class _HomeScreenState extends State<HomeScreen> {
       body: SafeArea(
         child: Stack(
           children: [
-            // Анимированный фон (не кликабельный)
-            IgnorePointer(child: AnimatedBackground(isConnected: _isConnected)),
+            // Градиентный фон
+            const GradientBackground(),
             // Основной контент
             Column(
               children: [
-                // Картинка выше - занимает верхнюю часть
-                Expanded(flex: 5, child: Container()),
-                // Кнопка Connect под картинкой (опущена ниже)
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: _isLoading
-                      ? Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.symmetric(vertical: 18),
-                          decoration: BoxDecoration(
-                            color: AppColors.darkSurface,
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: const Center(
-                            child: CircularProgressIndicator(),
-                          ),
-                        )
-                      : ConnectButton(
-                          isConnected: _isConnected,
-                          onTap: _toggleConnection,
-                        ),
+                const SizedBox(height: 40),
+                // Lottie анимация в центре
+                Expanded(
+                  flex: 3,
+                  child: Center(
+                    child: VpnLottieAnimation(
+                      state: _connectionState,
+                      width: MediaQuery.of(context).size.width * 0.9,
+                      height: MediaQuery.of(context).size.height * 0.4,
+                    ),
+                  ),
                 ),
-                const SizedBox(height: 24),
-                // Карточка статуса
+                // Статус подключения
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 24),
                   child: VpnStatusCard(
@@ -189,16 +181,44 @@ class _HomeScreenState extends State<HomeScreen> {
                     serverName: _selectedCountry.name,
                   ),
                 ),
-                const Spacer(),
-                // Нижняя навигация
-                VpnBottomNavigation(
-                  currentIndex: _currentNavIndex,
-                  onTap: _onNavTap,
+                const SizedBox(height: 32),
+                // Кнопка Connect/Disconnect
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: _isLoading
+                      ? Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(vertical: 18),
+                          decoration: BoxDecoration(
+                            color: AppColors.darkSurface.withOpacity(0.8),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: AppColors.neonBlue.withOpacity(0.3),
+                              width: 1,
+                            ),
+                          ),
+                          child: const Center(
+                            child: CircularProgressIndicator(
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                AppColors.neonBlue,
+                              ),
+                            ),
+                          ),
+                        )
+                      : ConnectButton(
+                          isConnected: _isConnected,
+                          onTap: _toggleConnection,
+                        ),
                 ),
+                const SizedBox(height: 40),
               ],
             ),
             // Кнопка меню в правом верхнем углу
-            Positioned(top: 20, right: 20, child: MenuButton(onTap: _openMenu)),
+            Positioned(
+              top: 20,
+              right: 20,
+              child: MenuButton(onTap: _openMenu),
+            ),
           ],
         ),
       ),
