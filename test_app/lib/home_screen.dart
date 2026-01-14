@@ -32,12 +32,14 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    _initializeDeviceId();
+    _initializeApp();
   }
 
-  Future<void> _initializeDeviceId() async {
+  Future<void> _initializeApp() async {
     try {
+      // Инициализируем device_id и is_vip при первом запуске
       final deviceId = await StorageService.getDeviceId();
+      await StorageService.getIsVip(); // Инициализирует is_vip как false, если еще не установлен
       setState(() {
         _deviceId = deviceId;
       });
@@ -70,34 +72,20 @@ class _HomeScreenState extends State<HomeScreen> {
     try {
       VpnConfig? vpnConfig;
 
-      // Проверяем, есть ли access token
-      final hasAccessToken = await StorageService.hasAccessToken();
-
-      if (hasAccessToken) {
-        // Registered/VIP flow
-        try {
-          vpnConfig = await ApiService.getVpnConfig();
-        } catch (e) {
-          // Если ошибка авторизации, пробуем обновить токен
-          final hasRefresh = await StorageService.hasRefreshToken();
-          if (hasRefresh) {
-            final refreshed = await ApiService.refreshAccessToken();
-            if (refreshed) {
-              vpnConfig = await ApiService.getVpnConfig();
-            } else {
-              throw Exception('Не удалось обновить токен. Требуется повторная авторизация.');
-            }
-          } else {
-            throw Exception('Требуется авторизация');
-          }
-        }
-      } else {
-        // Guest flow
-        if (_deviceId == null) {
-          await _initializeDeviceId();
-        }
-        vpnConfig = await ApiService.connectRequest(_deviceId!);
+      // Инициализируем device_id если нужно
+      if (_deviceId == null) {
+        await _initializeApp();
       }
+
+      // Используем новый единый метод подключения
+      // Он автоматически определяет, есть ли access token и использует его
+      // Используем название страны как локацию, или "all" если не выбрана
+      final location = _selectedCountry.name.isNotEmpty ? _selectedCountry.name : 'all';
+      
+      // Добавляем задержку 2 секунды для имитации подключения
+      await Future.delayed(const Duration(seconds: 2));
+      
+      vpnConfig = await ApiService.getVpnConfig(location: location);
 
       // Здесь должна быть логика подключения к VPN серверу
       // Пока просто сохраняем конфигурацию

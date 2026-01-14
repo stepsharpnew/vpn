@@ -32,10 +32,20 @@ def get_device_id_token(request: Request) -> str:
     return device_id
 
 
+def get_is_vip_token(request: Request) -> bool:
+    """Извлекает is_vip из заголовка Is_Vip"""
+    is_vip_str = request.headers.get('Is_Vip')
+    if not is_vip_str:
+        return False
+    
+    return is_vip_str.lower() in ('true', '1', 'yes')
+
+
 async def get_current_user(response: Response,
                            request: Request,
                            access_token: str = Depends(get_access_token),
-                           device_id: str = Depends(get_device_id_token)):
+                           device_id: str = Depends(get_device_id_token),
+                           is_vip: bool = Depends(get_is_vip_token)):
 
     if not device_id:
         raise UncorectTokenExeption
@@ -43,16 +53,12 @@ async def get_current_user(response: Response,
     if not access_token:
         user = await UsersDAO.find_one_or_none(device_id=device_id)
         if not user:
-            user = await UsersDAO.add()
+            user = await UsersDAO.add(device_id=device_id, is_vip=is_vip)
 
         if user.is_blocked:
             raise UserIsBlocked
         
-        user_dict = {'id': user.id,
-                     'device_id': user.device_id,
-                     'isvip': user.is_vip}
-
-        return user_dict
+        return user
     
     try:
         payload = jwt.decode(
@@ -87,9 +93,4 @@ async def get_current_user(response: Response,
     if not user:
         raise UncorectTokenExeption
     
-    user_dict = {'id': user.id,
-                 'device_id': user.device_id,
-                 'isvip': user.is_vip,
-                 'email': user.email}
-
-    return user_dict
+    return user

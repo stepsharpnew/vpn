@@ -6,6 +6,7 @@ class StorageService {
   
   // Keys
   static const String _deviceIdKey = 'device_id';
+  static const String _isVipKey = 'is_vip';
   static const String _accessTokenKey = 'access_token';
   static const String _refreshTokenKey = 'refresh_token';
   
@@ -64,6 +65,22 @@ class StorageService {
   static Future<bool> hasRefreshToken() async {
     final token = await getRefreshToken();
     return token != null && token.isNotEmpty;
+  }
+  
+  /// Получить is_vip или инициализировать как false
+  static Future<bool> getIsVip() async {
+    final isVipStr = await _storage.read(key: _isVipKey);
+    if (isVipStr == null || isVipStr.isEmpty) {
+      // Инициализируем как false при первом запуске
+      await setIsVip(false);
+      return false;
+    }
+    return isVipStr == 'true' || isVipStr == '1';
+  }
+  
+  /// Сохранить is_vip
+  static Future<void> setIsVip(bool isVip) async {
+    await _storage.write(key: _isVipKey, value: isVip ? 'true' : 'false');
   }
 }
 
