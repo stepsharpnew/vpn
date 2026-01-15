@@ -59,7 +59,7 @@ async def get_current_user(response: Response,
         
         user_dict = {'id': user.id,
                      'device_id': user.device_id,
-                     'isvip': user.is_vip}
+                     'is_vip': user.is_vip}
 
         return user_dict
     
@@ -98,7 +98,7 @@ async def get_current_user(response: Response,
     
     user_dict = {'id': user.id,
                  'device_id': user.device_id,
-                 'isvip': user.is_vip,
+                 'is_vip': user.is_vip,
                  'email': user.email}
 
     return user_dict
