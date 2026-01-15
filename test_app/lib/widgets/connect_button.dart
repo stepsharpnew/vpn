@@ -26,8 +26,8 @@ class ConnectButton extends StatelessWidget {
             gradient: LinearGradient(
               colors: isConnected
                   ? [
-                      AppColors.neonPurple,
-                      AppColors.neonMagenta,
+                      AppColors.neonPurple.withOpacity(0.7),
+                      AppColors.neonMagenta.withOpacity(0.7),
                     ]
                   : [
                       AppColors.neonBlue,
@@ -40,7 +40,7 @@ class ConnectButton extends StatelessWidget {
                 color: (isConnected
                         ? AppColors.neonMagenta
                         : AppColors.neonBlue)
-                    .withOpacity(0.5),
+                    .withOpacity(isConnected ? 0.3 : 0.5),
                 blurRadius: 20,
                 spreadRadius: 2,
               ),

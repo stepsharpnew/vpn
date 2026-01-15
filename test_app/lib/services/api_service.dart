@@ -7,77 +7,78 @@ import 'package:test_app/services/storage_service.dart';
 class ApiService {
   static const String baseUrl = AppConstants.apiBaseUrl;
   
-  /// Guest flow: запрос на подключение
-  static Future<VpnConfig> connectRequest(String deviceId) async {
-    final url = Uri.parse('$baseUrl/connect/request');
+  /// Получение VPN конфигурации (новый эндпоинт)
+  /// location: название локации или "all" для любой локации
+  static Future<VpnConfig> connectRequest(String deviceId, {String location = 'all', String? accessToken, bool? isVip}) async {
+    final url = Uri.parse('$baseUrl/sessions/connect').replace(queryParameters: {'location': location});
+    
+    final headers = <String, String>{
+      'Content-Type': 'application/json',
+      'Device_id': deviceId,
+    };
+    
+    // Добавляем is_vip в заголовок, если передан
+    if (isVip != null) {
+      headers['Is_Vip'] = isVip ? 'true' : 'false';
+    }
+    
+    // Если есть access token, добавляем его для VIP пользователей
+    if (accessToken != null && accessToken.isNotEmpty) {
+      headers['Authorization'] = 'Bearer $accessToken';
+    }
     
     final response = await http.post(
       url,
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'device_id': deviceId}),
+      headers: headers,
     );
     
     if (response.statusCode == 403) {
       throw Exception('Устройство заблокировано');
     }
     
+    if (response.statusCode == 401) {
+      throw Exception('Ошибка авторизации');
+    }
+    
     if (response.statusCode != 200) {
-      throw Exception('Ошибка подключения: ${response.statusCode}');
+      throw Exception('Ошибка подключения: ${response.statusCode} - ${response.body}');
     }
     
     final jsonData = jsonDecode(response.body) as Map<String, dynamic>;
     return VpnConfig.fromJson(jsonData);
   }
   
-  /// Registered/VIP flow: получение VPN конфигурации
-  static Future<VpnConfig> getVpnConfig() async {
-    final url = Uri.parse('$baseUrl/users/me/vpn-config');
-    
+  /// Получение VPN конфигурации для авторизованных пользователей
+  static Future<VpnConfig> getVpnConfig({String location = 'all'}) async {
     String? accessToken = await StorageService.getAccessToken();
+    String? deviceId = await StorageService.getDeviceId();
+    bool isVip = await StorageService.getIsVip();
+    
+    if (deviceId == null || deviceId.isEmpty) {
+      throw Exception('Нет device ID');
+    }
     
     if (accessToken == null || accessToken.isEmpty) {
-      throw Exception('Нет access token');
+      // Если нет токена, используем guest flow
+      return connectRequest(deviceId, location: location, isVip: isVip);
     }
     
-    final response = await http.get(
-      url,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $accessToken',
-      },
-    );
-    
-    if (response.statusCode == 401) {
-      // Токен истек, пробуем обновить
-      final refreshed = await refreshAccessToken();
-      if (refreshed) {
-        // Повторяем запрос с новым токеном
-        accessToken = await StorageService.getAccessToken();
-        final retryResponse = await http.get(
-          url,
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer $accessToken',
-          },
-        );
-        
-        if (retryResponse.statusCode != 200) {
-          throw Exception('Ошибка получения конфигурации: ${retryResponse.statusCode}');
+    try {
+      return await connectRequest(deviceId, location: location, accessToken: accessToken, isVip: isVip);
+    } catch (e) {
+      // Если ошибка авторизации, пробуем обновить токен
+      if (e.toString().contains('401') || e.toString().contains('авторизации')) {
+        final refreshed = await refreshAccessToken();
+        if (refreshed) {
+          // Повторяем запрос с новым токеном
+          accessToken = await StorageService.getAccessToken();
+          return await connectRequest(deviceId, location: location, accessToken: accessToken, isVip: isVip);
+        } else {
+          throw Exception('Не удалось обновить токен');
         }
-        
-        final jsonData = jsonDecode(retryResponse.body) as Map<String, dynamic>;
-        return VpnConfig.fromJson(jsonData);
-      } else {
-        throw Exception('Не удалось обновить токен');
       }
+      rethrow;
     }
-    
-    if (response.statusCode != 200) {
-      throw Exception('Ошибка получения конфигурации: ${response.statusCode}');
-    }
-    
-    final jsonData = jsonDecode(response.body) as Map<String, dynamic>;
-    return VpnConfig.fromJson(jsonData);
   }
   
   /// Обновление access token
@@ -111,9 +112,15 @@ class ApiService {
   static Future<Map<String, String>> login(String email, String password) async {
     final url = Uri.parse('$baseUrl/auth/login');
     
+    // Получаем device_id для заголовка
+    String deviceId = await StorageService.getDeviceId();
+    
     final response = await http.post(
       url,
-      headers: {'Content-Type': 'application/json'},
+      headers: {
+        'Content-Type': 'application/json',
+        'Device_id': deviceId,
+      },
       body: jsonEncode({
         'email': email,
         'password': password,
@@ -121,20 +128,18 @@ class ApiService {
     );
     
     if (response.statusCode != 200) {
-      throw Exception('Ошибка авторизации: ${response.statusCode}');
+      throw Exception('Ошибка авторизации: ${response.statusCode} - ${response.body}');
     }
     
     // Ответ приходит как JSON объект
     final jsonData = jsonDecode(response.body) as Map<String, dynamic>;
     final accessToken = jsonData['access_token'] as String;
-    final refreshToken = jsonData['refresh_token'] as String;
     
+    // В новом API refresh_token не возвращается, только access_token
     await StorageService.saveAccessToken(accessToken);
-    await StorageService.saveRefreshToken(refreshToken);
     
     return {
       'access_token': accessToken,
-      'refresh_token': refreshToken,
     };
   }
 }

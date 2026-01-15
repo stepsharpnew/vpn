@@ -69,7 +69,7 @@ class _VpnLottieAnimationState extends State<VpnLottieAnimation>
       case VpnConnectionState.connecting:
         return 'assets/animatios/Space Purple.json';
       case VpnConnectionState.connected:
-        return 'assets/animatios/Space Purple.json';
+        return 'assets/animatios/world wide shipment, e-commerce platform, international commerce and shipping, e-commerce.json';
     }
   }
 
