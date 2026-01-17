@@ -38,6 +38,8 @@ async def get_profile_by_id(profile_id: str):
     profile = None
     try:
         profile = await UsersDAO.find_one_or_none(id=profile_id)
+        profile = dict(profile)
+        del profile["hashed_password"]
     except:
         pass
 
