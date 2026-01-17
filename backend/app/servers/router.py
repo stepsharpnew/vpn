@@ -16,8 +16,8 @@ async def get_all_locations_servers():
     return locations
 
 @router.post('/add_server')
-async def add_server(name_server: str):
-    new_server = await ServersDAO.add(name_server = name_server)
+async def add_server(name_server: str, location: str):
+    new_server = await ServersDAO.add(name_server = name_server, location = location)
     return new_server
 
 # @router.get('/get_vpn_config')
