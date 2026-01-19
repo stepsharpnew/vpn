@@ -58,7 +58,7 @@ class ApiService {
       throw Exception('Нет device ID');
     }
     
-    if (accessToken == null) {
+    if (accessToken == null || accessToken.isEmpty) {
       // Если нет токена, используем guest flow
       return connectRequest(deviceId, location: location, isVip: isVip);
     }
@@ -151,7 +151,6 @@ class ApiService {
       url,
       headers: {
         'Content-Type': 'application/json',
-        'accept': 'application/json',
       },
     );
     
@@ -159,28 +158,8 @@ class ApiService {
       throw Exception('Ошибка получения списка серверов: ${response.statusCode} - ${response.body}');
     }
     
-    // Отладочная информация
-    print('Response body: ${response.body}');
-    
-    final jsonData = jsonDecode(response.body);
-    print('Parsed JSON: $jsonData');
-    print('JSON type: ${jsonData.runtimeType}');
-    
-    if (jsonData is! List) {
-      throw Exception('Ожидался массив, получен: ${jsonData.runtimeType}');
-    }
-    
-    // Преобразуем каждый элемент в строку
-    final locations = jsonData.map((item) {
-      if (item is String) {
-        return item.trim();
-      }
-      return item.toString().trim();
-    }).where((location) => location.isNotEmpty).toList();
-    
-    print('Parsed locations: $locations');
-    
-    return locations;
+    final jsonData = jsonDecode(response.body) as List<dynamic>;
+    return jsonData.map((item) => item.toString()).toList();
   }
 }
 

@@ -4,7 +4,6 @@ import 'package:test_app/models/server.dart';
 import 'package:test_app/models/vpn_config.dart';
 import 'package:test_app/services/api_service.dart';
 import 'package:test_app/services/storage_service.dart';
-import 'package:test_app/utils/country_flags.dart';
 import 'package:test_app/widgets/app_drawer.dart';
 import 'package:test_app/widgets/connect_button.dart';
 import 'package:test_app/widgets/gradient_background.dart';
@@ -59,27 +58,17 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _loadServers() async {
     try {
       final locations = await ApiService.getServerLocations();
-      // Отладочная информация
-      debugPrint('Загружено локаций: ${locations.length}');
-      debugPrint('Локации: $locations');
-      
       setState(() {
         _availableServers = [
           Server.auto,
-          ...locations.map((location) {
-            debugPrint('Создаю сервер для локации: $location');
-            return Server(
-              name: location,
-              location: location,
-            );
-          }),
+          ...locations.map((location) => Server(
+                name: location,
+                location: location,
+              )),
         ];
       });
-      
-      debugPrint('Всего серверов в списке: ${_availableServers.length}');
     } catch (e) {
       // Если не удалось загрузить, оставляем только Auto
-      debugPrint('Ошибка загрузки серверов: $e');
       if (mounted) {
         TopNotification.show(
           context: context,
@@ -204,16 +193,6 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  Color _getPingColor(int ping) {
-    if (ping < 50) {
-      return AppColors.connectedGreen;
-    } else if (ping < 100) {
-      return AppColors.neonBlue;
-    } else {
-      return AppColors.textSecondary;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -298,36 +277,26 @@ class _HomeScreenState extends State<HomeScreen> {
                           children: [
                             Row(
                               children: [
-                                // Иконка или флаг сервера
-                                if (_selectedServer.isAuto)
-                                  Container(
-                                    width: 40,
-                                    height: 40,
-                                    decoration: BoxDecoration(
-                                      color: AppColors.neonPurple.withOpacity(0.3),
-                                      shape: BoxShape.circle,
-                                    ),
-                                    child: const Icon(
-                                      Icons.auto_awesome,
-                                      color: AppColors.neonPurple,
-                                      size: 24,
-                                    ),
-                                  )
-                                else
-                                  Container(
-                                    width: 40,
-                                    height: 40,
-                                    decoration: BoxDecoration(
-                                      color: AppColors.darkBackground.withOpacity(0.5),
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: Center(
-                                      child: Text(
-                                        CountryFlags.getFlag(_selectedServer.name),
-                                        style: const TextStyle(fontSize: 24),
-                                      ),
-                                    ),
+                                // Иконка сервера
+                                Container(
+                                  width: 40,
+                                  height: 40,
+                                  decoration: BoxDecoration(
+                                    color: _selectedServer.isAuto
+                                        ? AppColors.neonPurple.withOpacity(0.3)
+                                        : AppColors.neonBlue.withOpacity(0.3),
+                                    shape: BoxShape.circle,
                                   ),
+                                  child: Icon(
+                                    _selectedServer.isAuto
+                                        ? Icons.auto_awesome
+                                        : Icons.location_on,
+                                    color: _selectedServer.isAuto
+                                        ? AppColors.neonPurple
+                                        : AppColors.neonBlue,
+                                    size: 20,
+                                  ),
+                                ),
                                 const SizedBox(width: 16),
                                 // Название сервера
                                 Column(
@@ -341,24 +310,13 @@ class _HomeScreenState extends State<HomeScreen> {
                                         fontWeight: FontWeight.w600,
                                       ),
                                     ),
-                                    if (!_selectedServer.isAuto)
-                                      Row(
-                                        children: [
-                                          Icon(
-                                            Icons.speed,
-                                            size: 12,
-                                            color: _getPingColor(_selectedServer.displayPing),
-                                          ),
-                                          const SizedBox(width: 4),
-                                          Text(
-                                            '${_selectedServer.displayPing} ms',
-                                            style: TextStyle(
-                                              color: _getPingColor(_selectedServer.displayPing),
-                                              fontSize: 11,
-                                              fontWeight: FontWeight.w500,
-                                            ),
-                                          ),
-                                        ],
+                                    if (!_selectedServer.isAuto && _selectedServer.location.isNotEmpty)
+                                      Text(
+                                        _selectedServer.location,
+                                        style: const TextStyle(
+                                          color: AppColors.textSecondary,
+                                          fontSize: 12,
+                                        ),
                                       ),
                                   ],
                                 ),
