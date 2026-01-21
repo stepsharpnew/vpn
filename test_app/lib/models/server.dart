@@ -22,7 +22,7 @@ class Server {
 
   /// Псевдо-сервер: открывает экран тарифов/подписки
   static const Server vipOffer = Server(
-    name: 'VIP / Go Pro',
+    name: 'VIP / Premium',
     location: 'Тарифные планы',
     isVipOffer: true,
   );

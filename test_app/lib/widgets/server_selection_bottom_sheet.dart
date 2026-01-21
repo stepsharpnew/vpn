@@ -86,26 +86,24 @@ class ServerSelectionBottomSheet extends StatelessWidget {
                 final isDisabled = state == ServerSelectionState.connecting;
 
                 if (server.isVipOffer) {
-                  final vipCard = Padding(
-                    padding: const EdgeInsets.only(bottom: 10),
-                    child: Material(
-                      color: Colors.transparent,
-                      child: InkWell(
-                        onTap: isDisabled ? null : () => onServerSelected(server),
-                        borderRadius: BorderRadius.circular(14),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [
-                                AppColors.neonPurple.withOpacity(0.22),
-                                AppColors.neonBlue.withOpacity(0.12),
-                              ],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                            borderRadius: BorderRadius.circular(14),
+                  final vipCardContent = Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: isDisabled ? null : () => onServerSelected(server),
+                      borderRadius: BorderRadius.circular(14),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              AppColors.neonPurple.withOpacity(0.22),
+                              AppColors.neonBlue.withOpacity(0.12),
+                            ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
                           ),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
                           child: Row(
                             children: [
                               SizedBox(
@@ -169,33 +167,35 @@ class ServerSelectionBottomSheet extends StatelessWidget {
                   );
 
                   // Обертываем в позолоченную рамку если не VIP
-                  if (!isVip) {
-                    return GoldenBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      child: vipCard,
-                    );
-                  }
-                  return vipCard;
+                  final vipCard = !isVip
+                      ? GoldenBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          child: vipCardContent,
+                        )
+                      : vipCardContent;
+
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: vipCard,
+                  );
                 }
 
-                final serverCard = Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                      onTap: isDisabled ? null : () => onServerSelected(server),
-                      borderRadius: BorderRadius.circular(12),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 16,
-                        ),
-                        decoration: BoxDecoration(
-                          color: isSelected
-                              ? AppColors.neonBlue.withOpacity(0.2)
-                              : AppColors.darkBackground.withOpacity(0.5),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
+                final serverCardContent = Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: isDisabled ? null : () => onServerSelected(server),
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 16,
+                      ),
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? AppColors.neonBlue.withOpacity(0.2)
+                            : AppColors.darkBackground.withOpacity(0.5),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                         child: Row(
                           children: [
                             // Иконка или флаг
@@ -269,9 +269,26 @@ class ServerSelectionBottomSheet extends StatelessWidget {
                 );
 
                 // Если VIP - оборачиваем все сервера в позолоченную рамку
-                // Если не VIP - тоже оборачиваем все сервера в позолоченную рамку
-                return GoldenBorder(
-                  borderRadius: BorderRadius.circular(12),
+                // Если не VIP - оборачиваем только не-Auto сервера в позолоченную рамку
+                Widget serverCard;
+                if (isVip) {
+                  serverCard = GoldenBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    child: serverCardContent,
+                  );
+                } else if (!server.isAuto) {
+                  // Для не-VIP пользователей только не-Auto сервера в золотой рамке
+                  serverCard = GoldenBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    child: serverCardContent,
+                  );
+                } else {
+                  // Auto для не-VIP без золотой рамки
+                  serverCard = serverCardContent;
+                }
+
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
                   child: serverCard,
                 );
               },

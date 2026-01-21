@@ -11,7 +11,7 @@ class GoldenBorder extends StatefulWidget {
   const GoldenBorder({
     super.key,
     required this.child,
-    this.borderWidth = 2.0,
+    this.borderWidth = 1.0,
     this.borderRadius,
   });
 
@@ -52,9 +52,9 @@ class _GoldenBorderState extends State<GoldenBorder>
             ),
             boxShadow: [
               BoxShadow(
-                color: _getAnimatedColor().withOpacity(0.3),
-                blurRadius: 8,
-                spreadRadius: 1,
+                color: _getAnimatedColor().withOpacity(0.2),
+                blurRadius: 4,
+                spreadRadius: 0,
               ),
             ],
           ),
@@ -67,15 +67,16 @@ class _GoldenBorderState extends State<GoldenBorder>
   Color _getAnimatedColor() {
     final value = _controller.value;
     // Создаем переливающийся эффект от золотого к желтому и обратно
-    final hue = (value * 360 + 45) % 360; // От 45 (золотой) до 45+360
-    final saturation = 0.8 + (math.sin(value * math.pi * 2) * 0.2);
-    final lightness = 0.5 + (math.sin(value * math.pi * 2) * 0.1);
+    // Золотой цвет: HSL примерно (45-50, 0.8-1.0, 0.5-0.6)
+    final hue = 45 + (math.sin(value * math.pi * 2) * 10); // От 35 до 55 (золотой диапазон)
+    final saturation = 0.85 + (math.sin(value * math.pi * 2 + math.pi / 2) * 0.15); // 0.7-1.0
+    final lightness = 0.55 + (math.sin(value * math.pi * 2) * 0.1); // 0.45-0.65
     
     return HSLColor.fromAHSL(
       1.0,
-      hue,
-      saturation.clamp(0.0, 1.0),
-      lightness.clamp(0.0, 1.0),
+      hue.clamp(35.0, 55.0),
+      saturation.clamp(0.7, 1.0),
+      lightness.clamp(0.45, 0.65),
     ).toColor();
   }
 }

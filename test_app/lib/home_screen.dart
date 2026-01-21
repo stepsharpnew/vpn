@@ -70,10 +70,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 )),
           ];
         } else {
-          // Если не VIP - VIP плашка сверху, затем auto, затем остальные сервера
+          // Если не VIP - Auto первым, затем VIP плашка, затем остальные сервера
           _availableServers = [
-            Server.vipOffer,
             Server.auto,
+            Server.vipOffer,
             ...locations.map((location) => Server(
                   name: location,
                   location: location,
