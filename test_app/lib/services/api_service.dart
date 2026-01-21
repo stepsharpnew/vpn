@@ -161,5 +161,61 @@ class ApiService {
     final jsonData = jsonDecode(response.body) as List<dynamic>;
     return jsonData.map((item) => item.toString()).toList();
   }
+
+  /// Включить VIP статус
+  static Future<bool> enableVip() async {
+    final url = Uri.parse('$baseUrl/users/enable_vip');
+    final deviceId = await StorageService.getDeviceId();
+    String? accessToken = await StorageService.getAccessToken();
+    
+    final headers = <String, String>{
+      'Content-Type': 'application/json',
+      'Device_id': deviceId,
+    };
+    
+    if (accessToken != null && accessToken.isNotEmpty) {
+      headers['Authorization'] = 'Bearer $accessToken';
+    }
+    
+    final response = await http.post(
+      url,
+      headers: headers,
+    );
+    
+    if (response.statusCode != 200) {
+      throw Exception('Ошибка активации VIP: ${response.statusCode} - ${response.body}');
+    }
+    
+    await StorageService.setIsVip(true);
+    return true;
+  }
+
+  /// Выключить VIP статус
+  static Future<bool> disableVip() async {
+    final url = Uri.parse('$baseUrl/users/disable_vip');
+    final deviceId = await StorageService.getDeviceId();
+    String? accessToken = await StorageService.getAccessToken();
+    
+    final headers = <String, String>{
+      'Content-Type': 'application/json',
+      'Device_id': deviceId,
+    };
+    
+    if (accessToken != null && accessToken.isNotEmpty) {
+      headers['Authorization'] = 'Bearer $accessToken';
+    }
+    
+    final response = await http.post(
+      url,
+      headers: headers,
+    );
+    
+    if (response.statusCode != 200) {
+      throw Exception('Ошибка деактивации VIP: ${response.statusCode} - ${response.body}');
+    }
+    
+    await StorageService.setIsVip(false);
+    return true;
+  }
 }
 

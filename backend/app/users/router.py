@@ -62,3 +62,16 @@ async def verify_code(user_data: SVerifyCode):
     return False
 
 
+@router.post('/enable_vip')
+async def enable_vip(current_user: dict = Depends(get_current_user)):
+    """Включает VIP статус для текущего пользователя"""
+    await UsersDAO.update_by_id(current_user['id'], is_vip=True)
+    return {'is_vip': True, 'message': 'VIP статус активирован'}
+
+
+@router.post('/disable_vip')
+async def disable_vip(current_user: dict = Depends(get_current_user)):
+    """Выключает VIP статус для текущего пользователя"""
+    await UsersDAO.update_by_id(current_user['id'], is_vip=False)
+    return {'is_vip': False, 'message': 'VIP статус деактивирован'}
+

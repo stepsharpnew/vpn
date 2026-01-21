@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
 import 'package:test_app/constants/app_colors.dart';
 import 'package:test_app/models/server.dart';
+import 'package:test_app/widgets/golden_border.dart';
 
 enum ServerSelectionState {
   disconnected,
@@ -15,6 +16,7 @@ class ServerSelectionBottomSheet extends StatelessWidget {
   final Server? selectedServer;
   final ServerSelectionState state;
   final Function(Server) onServerSelected;
+  final bool isVip;
 
   const ServerSelectionBottomSheet({
     super.key,
@@ -22,6 +24,7 @@ class ServerSelectionBottomSheet extends StatelessWidget {
     this.selectedServer,
     required this.state,
     required this.onServerSelected,
+    this.isVip = false,
   });
 
   @override
@@ -83,7 +86,7 @@ class ServerSelectionBottomSheet extends StatelessWidget {
                 final isDisabled = state == ServerSelectionState.connecting;
 
                 if (server.isVipOffer) {
-                  return Padding(
+                  final vipCard = Padding(
                     padding: const EdgeInsets.only(bottom: 10),
                     child: Material(
                       color: Colors.transparent,
@@ -102,10 +105,6 @@ class ServerSelectionBottomSheet extends StatelessWidget {
                               end: Alignment.bottomRight,
                             ),
                             borderRadius: BorderRadius.circular(14),
-                            border: Border.all(
-                              color: AppColors.neonPurple.withOpacity(0.55),
-                              width: 1,
-                            ),
                           ),
                           child: Row(
                             children: [
@@ -168,9 +167,18 @@ class ServerSelectionBottomSheet extends StatelessWidget {
                       ),
                     ),
                   );
+
+                  // Обертываем в позолоченную рамку если не VIP
+                  if (!isVip) {
+                    return GoldenBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      child: vipCard,
+                    );
+                  }
+                  return vipCard;
                 }
 
-                return Padding(
+                final serverCard = Padding(
                   padding: const EdgeInsets.only(bottom: 8),
                   child: Material(
                     color: Colors.transparent,
@@ -187,12 +195,6 @@ class ServerSelectionBottomSheet extends StatelessWidget {
                               ? AppColors.neonBlue.withOpacity(0.2)
                               : AppColors.darkBackground.withOpacity(0.5),
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: isSelected
-                                ? AppColors.neonBlue
-                                : Colors.transparent,
-                            width: 2,
-                          ),
                         ),
                         child: Row(
                           children: [
@@ -264,6 +266,13 @@ class ServerSelectionBottomSheet extends StatelessWidget {
                       ),
                     ),
                   ),
+                );
+
+                // Если VIP - оборачиваем все сервера в позолоченную рамку
+                // Если не VIP - тоже оборачиваем все сервера в позолоченную рамку
+                return GoldenBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  child: serverCard,
                 );
               },
             ),

@@ -60,14 +60,26 @@ class _HomeScreenState extends State<HomeScreen> {
     try {
       final locations = await ApiService.getServerLocations();
       setState(() {
-        _availableServers = [
-          Server.vipOffer,
-          Server.auto,
-          ...locations.map((location) => Server(
-                name: location,
-                location: location,
-              )),
-        ];
+        if (_isVip) {
+          // Если VIP - все сервера с позолоченными рамками
+          _availableServers = [
+            Server.auto,
+            ...locations.map((location) => Server(
+                  name: location,
+                  location: location,
+                )),
+          ];
+        } else {
+          // Если не VIP - VIP плашка сверху, затем auto, затем остальные сервера
+          _availableServers = [
+            Server.vipOffer,
+            Server.auto,
+            ...locations.map((location) => Server(
+                  name: location,
+                  location: location,
+                )),
+          ];
+        }
       });
     } catch (e) {
       // Если не удалось загрузить, оставляем только Auto
@@ -160,6 +172,7 @@ class _HomeScreenState extends State<HomeScreen> {
           servers: _availableServers,
           selectedServer: _selectedServer,
           state: _getServerSelectionState(),
+          isVip: _isVip,
           onServerSelected: (server) {
             if (server.isVipOffer) {
               Navigator.pop(context);
@@ -169,7 +182,10 @@ class _HomeScreenState extends State<HomeScreen> {
                     onVipActivated: () async {
                       final isVip = await StorageService.getIsVip();
                       if (mounted) {
-                        setState(() => _isVip = isVip);
+                        setState(() {
+                          _isVip = isVip;
+                        });
+                        await _loadServers(); // Перезагружаем список серверов
                       }
                     },
                   ),
@@ -211,7 +227,17 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       key: _scaffoldKey,
       backgroundColor: AppColors.darkBackground,
-      endDrawer: const AppDrawer(),
+      endDrawer: AppDrawer(
+        onVipStatusChanged: () async {
+          final isVip = await StorageService.getIsVip();
+          if (mounted) {
+            setState(() {
+              _isVip = isVip;
+            });
+            await _loadServers(); // Перезагружаем список серверов
+          }
+        },
+      ),
       body: SafeArea(
         child: Stack(
           children: [
