@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:test_app/constants/app_colors.dart';
-import 'package:test_app/constants/app_constants.dart';
-import 'package:test_app/models/country.dart';
+import 'package:test_app/models/server.dart';
 import 'package:test_app/models/vpn_config.dart';
 import 'package:test_app/services/api_service.dart';
 import 'package:test_app/services/storage_service.dart';
@@ -9,8 +8,9 @@ import 'package:test_app/widgets/app_drawer.dart';
 import 'package:test_app/widgets/connect_button.dart';
 import 'package:test_app/widgets/gradient_background.dart';
 import 'package:test_app/widgets/menu_button.dart';
+import 'package:test_app/widgets/server_selection_bottom_sheet.dart';
+import 'package:test_app/widgets/top_notification.dart';
 import 'package:test_app/widgets/vpn_lottie_animation.dart';
-import 'package:test_app/widgets/vpn_status_card.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -24,10 +24,8 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isLoading = false;
   String? _deviceId;
   VpnConfig? _currentVpnConfig;
-  Country _selectedCountry = const Country(
-    name: AppConstants.defaultCountry,
-    flag: AppConstants.defaultCountryFlag,
-  );
+  Server _selectedServer = Server.auto;
+  List<Server> _availableServers = [Server.auto];
 
   @override
   void initState() {
@@ -43,10 +41,39 @@ class _HomeScreenState extends State<HomeScreen> {
       setState(() {
         _deviceId = deviceId;
       });
+      
+      // Загружаем список серверов
+      await _loadServers();
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Ошибка инициализации: $e')),
+        TopNotification.show(
+          context: context,
+          message: 'Ошибка инициализации: $e',
+          type: NotificationType.error,
+        );
+      }
+    }
+  }
+
+  Future<void> _loadServers() async {
+    try {
+      final locations = await ApiService.getServerLocations();
+      setState(() {
+        _availableServers = [
+          Server.auto,
+          ...locations.map((location) => Server(
+                name: location,
+                location: location,
+              )),
+        ];
+      });
+    } catch (e) {
+      // Если не удалось загрузить, оставляем только Auto
+      if (mounted) {
+        TopNotification.show(
+          context: context,
+          message: 'Ошибка загрузки серверов: $e',
+          type: NotificationType.error,
         );
       }
     }
@@ -79,8 +106,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
       // Используем новый единый метод подключения
       // Он автоматически определяет, есть ли access token и использует его
-      // Используем название страны как локацию, или "all" если не выбрана
-      final location = _selectedCountry.name.isNotEmpty ? _selectedCountry.name : 'all';
+      // Используем выбранный сервер, или "all" если выбран Auto
+      final location = _selectedServer.isAuto ? 'all' : _selectedServer.location;
       
       // Добавляем задержку 2 секунды для имитации подключения
       await Future.delayed(const Duration(seconds: 2));
@@ -96,11 +123,10 @@ class _HomeScreenState extends State<HomeScreen> {
       });
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Подключение установлено'),
-            backgroundColor: Colors.green,
-          ),
+        TopNotification.show(
+          context: context,
+          message: 'Вы успешно подключены',
+          type: NotificationType.success,
         );
       }
     } catch (e) {
@@ -109,11 +135,10 @@ class _HomeScreenState extends State<HomeScreen> {
       });
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Ошибка подключения: $e'),
-            backgroundColor: Colors.red,
-          ),
+        TopNotification.show(
+          context: context,
+          message: 'Ошибка подключения: $e',
+          type: NotificationType.error,
         );
       }
     }
@@ -123,6 +148,39 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _openMenu() {
     _scaffoldKey.currentState?.openEndDrawer();
+  }
+
+  void _openServerSelection() {
+    if (_isLoading) return; // Не открываем во время подключения
+    
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (BuildContext context) {
+        return ServerSelectionBottomSheet(
+          servers: _availableServers,
+          selectedServer: _selectedServer,
+          state: _getServerSelectionState(),
+          onServerSelected: (server) {
+            setState(() {
+              _selectedServer = server;
+            });
+            Navigator.pop(context);
+          },
+        );
+      },
+    );
+  }
+
+  ServerSelectionState _getServerSelectionState() {
+    if (_isLoading) {
+      return ServerSelectionState.connecting;
+    } else if (_isConnected) {
+      return ServerSelectionState.connected;
+    } else {
+      return ServerSelectionState.disconnected;
+    }
   }
 
   VpnConnectionState get _connectionState {
@@ -161,15 +219,6 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                 ),
-                // Статус подключения
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: VpnStatusCard(
-                    isConnected: _isConnected,
-                    serverName: _selectedCountry.name,
-                  ),
-                ),
-                const SizedBox(height: 32),
                 // Кнопка Connect/Disconnect
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -197,6 +246,92 @@ class _HomeScreenState extends State<HomeScreen> {
                           isConnected: _isConnected,
                           onTap: _toggleConnection,
                         ),
+                ),
+                const SizedBox(height: 24),
+                // Кнопка выбора сервера
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: _openServerSelection,
+                      borderRadius: BorderRadius.circular(16),
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 16,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.darkSurface.withOpacity(0.6),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: _getServerSelectionState() == ServerSelectionState.connected
+                                ? AppColors.connectedGreen.withOpacity(0.3)
+                                : AppColors.disconnectedGrey.withOpacity(0.3),
+                            width: 1,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(
+                              children: [
+                                // Иконка сервера
+                                Container(
+                                  width: 40,
+                                  height: 40,
+                                  decoration: BoxDecoration(
+                                    color: _selectedServer.isAuto
+                                        ? AppColors.neonPurple.withOpacity(0.3)
+                                        : AppColors.neonBlue.withOpacity(0.3),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Icon(
+                                    _selectedServer.isAuto
+                                        ? Icons.auto_awesome
+                                        : Icons.location_on,
+                                    color: _selectedServer.isAuto
+                                        ? AppColors.neonPurple
+                                        : AppColors.neonBlue,
+                                    size: 20,
+                                  ),
+                                ),
+                                const SizedBox(width: 16),
+                                // Название сервера
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      _selectedServer.name,
+                                      style: const TextStyle(
+                                        color: AppColors.textPrimary,
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    if (!_selectedServer.isAuto && _selectedServer.location.isNotEmpty)
+                                      Text(
+                                        _selectedServer.location,
+                                        style: const TextStyle(
+                                          color: AppColors.textSecondary,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                            // Стрелка вниз
+                            Icon(
+                              Icons.keyboard_arrow_down,
+                              color: AppColors.textSecondary,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 40),
               ],

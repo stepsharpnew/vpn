@@ -1,0 +1,74 @@
+/// Утилита для получения флагов стран по названию
+class CountryFlags {
+  static const Map<String, String> _flags = {
+    'Germany': '🇩🇪',
+    'Netherlands': '🇳🇱',
+    'France': '🇫🇷',
+    'United States': '🇺🇸',
+    'United Kingdom': '🇬🇧',
+    'Japan': '🇯🇵',
+    'Canada': '🇨🇦',
+    'Australia': '🇦🇺',
+    'Switzerland': '🇨🇭',
+    'Sweden': '🇸🇪',
+    'Spain': '🇪🇸',
+    'Italy': '🇮🇹',
+    'Poland': '🇵🇱',
+    'Norway': '🇳🇴',
+    'Denmark': '🇩🇰',
+    'Finland': '🇫🇮',
+    'Belgium': '🇧🇪',
+    'Austria': '🇦🇹',
+    'Portugal': '🇵🇹',
+    'Ireland': '🇮🇪',
+    'Czech Republic': '🇨🇿',
+    'Romania': '🇷🇴',
+    'Greece': '🇬🇷',
+    'Hungary': '🇭🇺',
+    'Bulgaria': '🇧🇬',
+    'Croatia': '🇭🇷',
+    'Slovakia': '🇸🇰',
+    'Slovenia': '🇸🇮',
+    'Estonia': '🇪🇪',
+    'Latvia': '🇱🇻',
+    'Lithuania': '🇱🇹',
+    'Luxembourg': '🇱🇺',
+    'Malta': '🇲🇹',
+    'Cyprus': '🇨🇾',
+    'Singapore': '🇸🇬',
+    'South Korea': '🇰🇷',
+    'Hong Kong': '🇭🇰',
+    'Taiwan': '🇹🇼',
+    'New Zealand': '🇳🇿',
+    'Brazil': '🇧🇷',
+    'Mexico': '🇲🇽',
+    'Argentina': '🇦🇷',
+    'Chile': '🇨🇱',
+    'South Africa': '🇿🇦',
+    'India': '🇮🇳',
+    'Turkey': '🇹🇷',
+    'Israel': '🇮🇱',
+    'United Arab Emirates': '🇦🇪',
+    'Saudi Arabia': '🇸🇦',
+    'Egypt': '🇪🇬',
+    'Thailand': '🇹🇭',
+    'Malaysia': '🇲🇾',
+    'Indonesia': '🇮🇩',
+    'Philippines': '🇵🇭',
+    'Vietnam': '🇻🇳',
+    'Russia': '🇷🇺',
+    'Ukraine': '🇺🇦',
+    'Belarus': '🇧🇾',
+    'Kazakhstan': '🇰🇿',
+  };
+
+  /// Получить флаг страны по названию
+  static String getFlag(String countryName) {
+    return _flags[countryName] ?? '🌐';
+  }
+}
+
+
+
+
+

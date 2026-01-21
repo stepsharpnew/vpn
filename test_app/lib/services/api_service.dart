@@ -142,5 +142,24 @@ class ApiService {
       'access_token': accessToken,
     };
   }
+  
+  /// Получение списка доступных локаций серверов
+  static Future<List<String>> getServerLocations() async {
+    final url = Uri.parse('$baseUrl/servers/get_all_locations_servers');
+    
+    final response = await http.get(
+      url,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    );
+    
+    if (response.statusCode != 200) {
+      throw Exception('Ошибка получения списка серверов: ${response.statusCode} - ${response.body}');
+    }
+    
+    final jsonData = jsonDecode(response.body) as List<dynamic>;
+    return jsonData.map((item) => item.toString()).toList();
+  }
 }
 
