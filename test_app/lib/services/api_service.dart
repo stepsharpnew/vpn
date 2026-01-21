@@ -51,10 +51,10 @@ class ApiService {
   /// Получение VPN конфигурации для авторизованных пользователей
   static Future<VpnConfig> getVpnConfig({String location = 'all'}) async {
     String? accessToken = await StorageService.getAccessToken();
-    String? deviceId = await StorageService.getDeviceId();
+    final deviceId = await StorageService.getDeviceId();
     bool isVip = await StorageService.getIsVip();
-    
-    if (deviceId == null || deviceId.isEmpty) {
+
+    if (deviceId.isEmpty) {
       throw Exception('Нет device ID');
     }
     

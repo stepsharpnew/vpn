@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
-import 'package:test_app/constants/app_colors.dart';
 
 /// Градиентный фон с сине-фиолетовым градиентом и анимацией снега
 class GradientBackground extends StatelessWidget {

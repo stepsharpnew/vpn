@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:test_app/constants/app_colors.dart';
 import 'package:test_app/models/server.dart';
-import 'package:test_app/models/vpn_config.dart';
 import 'package:test_app/services/api_service.dart';
 import 'package:test_app/services/storage_service.dart';
 import 'package:test_app/widgets/app_drawer.dart';
@@ -11,6 +10,7 @@ import 'package:test_app/widgets/menu_button.dart';
 import 'package:test_app/widgets/server_selection_bottom_sheet.dart';
 import 'package:test_app/widgets/top_notification.dart';
 import 'package:test_app/widgets/vpn_lottie_animation.dart';
+import 'package:test_app/tariff_plans_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -23,9 +23,9 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isConnected = false;
   bool _isLoading = false;
   String? _deviceId;
-  VpnConfig? _currentVpnConfig;
   Server _selectedServer = Server.auto;
-  List<Server> _availableServers = [Server.auto];
+  List<Server> _availableServers = [Server.vipOffer, Server.auto];
+  bool _isVip = false;
 
   @override
   void initState() {
@@ -37,9 +37,10 @@ class _HomeScreenState extends State<HomeScreen> {
     try {
       // Инициализируем device_id и is_vip при первом запуске
       final deviceId = await StorageService.getDeviceId();
-      await StorageService.getIsVip(); // Инициализирует is_vip как false, если еще не установлен
+      final isVip = await StorageService.getIsVip(); // Инициализирует is_vip как false, если еще не установлен
       setState(() {
         _deviceId = deviceId;
+        _isVip = isVip;
       });
       
       // Загружаем список серверов
@@ -60,6 +61,7 @@ class _HomeScreenState extends State<HomeScreen> {
       final locations = await ApiService.getServerLocations();
       setState(() {
         _availableServers = [
+          Server.vipOffer,
           Server.auto,
           ...locations.map((location) => Server(
                 name: location,
@@ -86,7 +88,6 @@ class _HomeScreenState extends State<HomeScreen> {
       // Отключение
       setState(() {
         _isConnected = false;
-        _currentVpnConfig = null;
       });
       return;
     }
@@ -97,8 +98,6 @@ class _HomeScreenState extends State<HomeScreen> {
     });
 
     try {
-      VpnConfig? vpnConfig;
-
       // Инициализируем device_id если нужно
       if (_deviceId == null) {
         await _initializeApp();
@@ -112,13 +111,12 @@ class _HomeScreenState extends State<HomeScreen> {
       // Добавляем задержку 2 секунды для имитации подключения
       await Future.delayed(const Duration(seconds: 2));
       
-      vpnConfig = await ApiService.getVpnConfig(location: location);
+      await ApiService.getVpnConfig(location: location);
 
       // Здесь должна быть логика подключения к VPN серверу
       // Пока просто сохраняем конфигурацию
       setState(() {
         _isConnected = true;
-        _currentVpnConfig = vpnConfig;
         _isLoading = false;
       });
 
@@ -152,7 +150,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _openServerSelection() {
     if (_isLoading) return; // Не открываем во время подключения
-    
+    final parentContext = context;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -163,9 +161,24 @@ class _HomeScreenState extends State<HomeScreen> {
           selectedServer: _selectedServer,
           state: _getServerSelectionState(),
           onServerSelected: (server) {
-            setState(() {
-              _selectedServer = server;
-            });
+            if (server.isVipOffer) {
+              Navigator.pop(context);
+              Navigator.of(parentContext).push(
+                MaterialPageRoute(
+                  builder: (_) => TariffPlansScreen(
+                    onVipActivated: () async {
+                      final isVip = await StorageService.getIsVip();
+                      if (mounted) {
+                        setState(() => _isVip = isVip);
+                      }
+                    },
+                  ),
+                ),
+              );
+              return;
+            }
+
+            setState(() => _selectedServer = server);
             Navigator.pop(context);
           },
         );
@@ -322,6 +335,26 @@ class _HomeScreenState extends State<HomeScreen> {
                                 ),
                               ],
                             ),
+                            if (_isVip)
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(999),
+                                  color: AppColors.neonPurple.withOpacity(0.25),
+                                  border: Border.all(
+                                    color: AppColors.neonPurple.withOpacity(0.5),
+                                    width: 1,
+                                  ),
+                                ),
+                                child: const Text(
+                                  'VIP',
+                                  style: TextStyle(
+                                    color: AppColors.textPrimary,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
                             // Стрелка вниз
                             Icon(
                               Icons.keyboard_arrow_down,

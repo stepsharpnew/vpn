@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lottie/lottie.dart';
 import 'package:test_app/constants/app_colors.dart';
 import 'package:test_app/models/server.dart';
 
@@ -80,6 +81,94 @@ class ServerSelectionBottomSheet extends StatelessWidget {
                 final server = servers[index];
                 final isSelected = selectedServer?.name == server.name;
                 final isDisabled = state == ServerSelectionState.connecting;
+
+                if (server.isVipOffer) {
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: isDisabled ? null : () => onServerSelected(server),
+                        borderRadius: BorderRadius.circular(14),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                AppColors.neonPurple.withOpacity(0.22),
+                                AppColors.neonBlue.withOpacity(0.12),
+                              ],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: AppColors.neonPurple.withOpacity(0.55),
+                              width: 1,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              SizedBox(
+                                width: 34,
+                                height: 34,
+                                child: Lottie.asset(
+                                  'assets/animatios/Premium_CallerID.json',
+                                  repeat: true,
+                                  animate: true,
+                                  frameRate: FrameRate.max,
+                                  options: LottieOptions(enableMergePaths: true),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      server.name,
+                                      style: TextStyle(
+                                        color: isDisabled ? AppColors.textSecondary : AppColors.textPrimary,
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      'Открыть тарифные планы',
+                                      style: TextStyle(
+                                        color: AppColors.textSecondary.withOpacity(0.9),
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              SizedBox(
+                                width: 64,
+                                height: 34,
+                                child: Lottie.asset(
+                                  'assets/animatios/Pro Animation 3rd.json',
+                                  repeat: true,
+                                  animate: true,
+                                  frameRate: FrameRate.max,
+                                  options: LottieOptions(enableMergePaths: true),
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              Icon(
+                                Icons.arrow_forward_ios,
+                                size: 16,
+                                color: AppColors.textSecondary.withOpacity(0.9),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                }
 
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 8),
