@@ -32,13 +32,12 @@ def get_device_id_token(request: Request) -> str:
     return device_id
 
 
-# def get_is_vip_token(request: Request) -> bool:
-#     """Извлекает is_vip из заголовка Is_Vip"""
-#     is_vip_str = request.headers.get('Is_Vip')
-#     if not is_vip_str:
-#         return False
-    
-#     return is_vip_str.lower() in ('true', '1', 'yes')
+def get_token(request: Request):
+    try:
+        token = request.cookies['token']
+    except:
+        raise NoTokenExeption
+    return token
 
 
 async def get_current_user(response: Response,
@@ -59,7 +58,8 @@ async def get_current_user(response: Response,
         
         user_dict = {'id': user.id,
                      'device_id': user.device_id,
-                     'is_vip': user.is_vip}
+                     'is_vip': user.is_vip,
+                     'is_blocked': user.is_blocked}
 
         return user_dict
     
@@ -76,19 +76,6 @@ async def get_current_user(response: Response,
     
     expire: str = payload['exp']
     if (not expire) or (int(expire) < datetime.now(timezone.utc).timestamp()):
-        # refresh_token_data = await RefreshTokensDAO.find_refresh_token(user_id=user_id, device_id=device_id)
-        
-        # if refresh_token_data:
-        #     if int(refresh_token_data.expires_at) > datetime.now(timezone.utc).timestamp():
-        #         access_token = create_access_token({'sub': user_id})
-        #         ## решить как отправить обратно новый аксес
-        #     else:
-        #         await UsersDAO.update_by_id(user_id, is_vip=False) 
-        #         raise ExpireTokenExeption
-        # else:
-        #     await UsersDAO.update_by_id(user_id, is_vip=False) 
-        #     raise ExpireTokenExeption
-
         await UsersDAO.update_by_id(user_id, is_vip=False) 
         raise ExpireTokenExeption
         
@@ -99,6 +86,34 @@ async def get_current_user(response: Response,
     user_dict = {'id': user.id,
                  'device_id': user.device_id,
                  'is_vip': user.is_vip,
+                 'email': user.email,
+                 'is_blocked': user.is_blocked}
+
+    return user_dict
+
+
+
+async def check_admin_access_token(token: str = Depends(get_token)):
+    try:
+        payload = jwt.decode(
+            token, settings.SECRET_WORD, settings.HASH_ALGORITHM
+        )
+    except JWTError:
+        raise UncorectTokenExeption
+    
+    expire: str = payload['exp']
+    if (not expire) or (int(expire) < datetime.now(timezone.utc).timestamp()):
+        raise ExpireTokenExeption
+    
+    user_id: str = payload['sub']
+    if not user_id:
+        raise UncorectTokenExeption
+    
+    user = await UsersDAO.find_one_or_none(id=user_id, role="admin")
+    if not user:
+        raise UncorectTokenExeption
+    
+    user_dict = {'id': user.id,
                  'email': user.email}
 
     return user_dict

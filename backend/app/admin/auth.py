@@ -2,9 +2,12 @@ from sqladmin import Admin
 from sqladmin.authentication import AuthenticationBackend
 from starlette.requests import Request
 from starlette.responses import RedirectResponse
+from pydantic import EmailStr
 
 from app.auth.auth import authenticate_admin, create_access_token
-from app.auth.dependecies import get_current_user
+from app.auth.dependecies import check_admin_access_token, get_current_user
+from app.users.dao import UsersDAO
+from app.config import settings
 
 
 class AdminAuth(AuthenticationBackend):
@@ -13,6 +16,7 @@ class AdminAuth(AuthenticationBackend):
         email, password = form["username"], form["password"]
 
         user = await authenticate_admin(email, password)
+        
         if user:    
             access_token = create_access_token({'sub': str(user.id)})
             request.session.update({"token": access_token})
@@ -28,11 +32,11 @@ class AdminAuth(AuthenticationBackend):
         if not token:
             return False
         
-        user = await get_current_user(token)
+        user = await check_admin_access_token(token)
         if not user:
             return False
 
         return True
 
 
-authentication_backend = AdminAuth(secret_key="...")
+authentication_backend = AdminAuth(secret_key=settings.SECRET_WORD)

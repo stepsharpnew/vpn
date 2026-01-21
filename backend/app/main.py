@@ -6,6 +6,11 @@ from app.users.router import router as router_user
 from app.sessions.router import router as router_sessions
 from app.servers.router import router as router_server
 
+from sqladmin import Admin
+from app.admin.auth import authentication_backend
+from app.database import engine_nullpool
+from app.admin.view import UserAdmin, ServersAdmin, SessionsAdmin
+
 app = FastAPI()
 
 app.include_router(router_auth)
@@ -51,6 +56,14 @@ def custom_openapi():
     return app.openapi_schema
 
 app.openapi = custom_openapi
+
+
+admin = Admin(app, engine_nullpool, authentication_backend=authentication_backend)
+
+admin.add_view(UserAdmin)
+admin.add_view(ServersAdmin)
+admin.add_view(SessionsAdmin)
+
 
 origins = [
     'http://localhost:8000',
