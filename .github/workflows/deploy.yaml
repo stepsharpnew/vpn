@@ -13,51 +13,201 @@ on:
       - 'backend/**'
 
 jobs:
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      version-type: ${{ steps.version.outputs.version-type }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Determine version type from branch name
+        id: version
+        run: |
+          # Получаем название ветки (для PR - исходная ветка, для push - текущая ветка)
+          BRANCH_NAME="${{ github.head_ref || github.ref_name }}"
+          echo "Branch name: $BRANCH_NAME"
+          
+          # Определяем тип версии на основе паттернов в названии ветки
+          # Паттерны: major(major|breaking|!), minor(feat|feature|minor), patch(fix|patch|bug)
+          VERSION_TYPE="patch"  # По умолчанию patch
+          
+          # Проверяем паттерны для major версии: major, breaking, !
+          if echo "$BRANCH_NAME" | grep -qiE '(major|breaking|!)(:|/|-|\s)'; then
+            VERSION_TYPE="major"
+            echo "✓ Detected MAJOR version bump (major/breaking/! in branch name)"
+          # Проверяем паттерны для minor версии: feat, feature, minor
+          elif echo "$BRANCH_NAME" | grep -qiE '(feat|feature|minor)(:|/|-|\s)'; then
+            VERSION_TYPE="minor"
+            echo "✓ Detected MINOR version bump (feat/feature/minor in branch name)"
+          # Проверяем паттерны для patch версии: fix, patch, bug
+          elif echo "$BRANCH_NAME" | grep -qiE '(fix|patch|bug)(:|/|-|\s)'; then
+            VERSION_TYPE="patch"
+            echo "✓ Detected PATCH version bump (fix/patch/bug in branch name)"
+          else
+            echo "⚠ No pattern matched in branch name, defaulting to PATCH version bump"
+            echo "  Supported patterns:"
+            echo "    - MAJOR: major, breaking, ! (with : / - or space)"
+            echo "    - MINOR: feat, feature, minor (with : / - or space)"
+            echo "    - PATCH: fix, patch, bug (with : / - or space)"
+          fi
+          
+          # Получаем последний тег
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+          echo "Last tag: $LAST_TAG"
+          
+          # Убираем префикс 'v' если есть
+          LAST_VERSION=${LAST_TAG#v}
+          
+          # Разбиваем версию на части
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$LAST_VERSION"
+          
+          # Увеличиваем версию в зависимости от типа
+          case $VERSION_TYPE in
+            major)
+              MAJOR=$((MAJOR + 1))
+              MINOR=0
+              PATCH=0
+              ;;
+            minor)
+              MINOR=$((MINOR + 1))
+              PATCH=0
+              ;;
+            patch)
+              PATCH=$((PATCH + 1))
+              ;;
+          esac
+          
+          # Формируем новую версию
+          NEW_VERSION="$MAJOR.$MINOR.$PATCH"
+          echo "Version type: $VERSION_TYPE"
+          echo "New version: $NEW_VERSION"
+          
+          echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "version-type=$VERSION_TYPE" >> $GITHUB_OUTPUT
+
   build-and-deploy:
     runs-on: ubuntu-latest
-
+    needs: version
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    
     steps:
-    # 1. Checkout кода
+    # 1. Checkout кода с полной историей для тегов
     - name: Checkout code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        token: ${{ secrets.GITHUB_TOKEN }}
 
-    # 2. Настройка SSH
+    # 2. Настройка Git для создания тегов
+    - name: Configure Git
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+
+    # 3. Обновление версий в файлах проекта
+    - name: Update version in pyproject.toml
+      run: |
+        VERSION="${{ needs.version.outputs.version }}"
+        sed -i "s/^version = \".*\"/version = \"$VERSION\"/" ./backend/pyproject.toml
+        echo "Updated backend version to $VERSION"
+
+    - name: Update version in pubspec.yaml
+      run: |
+        VERSION="${{ needs.version.outputs.version }}"
+        # Обновляем версию в формате X.Y.Z+BUILD
+        BUILD_NUMBER=$(echo "$VERSION" | cut -d'.' -f3)
+        sed -i "s/^version: .*/version: $VERSION+$BUILD_NUMBER/" ./test_app/pubspec.yaml
+        echo "Updated frontend version to $VERSION+$BUILD_NUMBER"
+
+    # 4. Создание git tag и коммит изменений версий
+    - name: Create version tag and commit
+      run: |
+        VERSION="${{ needs.version.outputs.version }}"
+        TAG="v$VERSION"
+        
+        # Коммитим изменения версий
+        git add ./backend/pyproject.toml ./test_app/pubspec.yaml
+        git commit -m "chore: bump version to $TAG" || echo "No changes to commit"
+        
+        # Создаем тег
+        git tag -a "$TAG" -m "Release $TAG"
+        
+        # Пушим изменения и теги
+        git push origin main
+        git push origin "$TAG"
+
+    # 5. Настройка SSH
     - name: Set up SSH
       uses: webfactory/ssh-agent@v0.9.0
       with:
         ssh-private-key: ${{ secrets.DEPLOY_SSH_KEY }}
     
-    # 3. Установим docker-compose
+    # 6. Установим docker-compose
     - name: Install Docker Compose
       run: |
         sudo apt-get update
         sudo apt-get install -y docker-compose
     
-    # 4. Создаём файл .env-non-dev из секретов
+    # 7. Создаём файл .env-non-dev из секретов
     - name: Create .env-non-dev file
       run: echo "${{ secrets.ENV_NON_DEV }}" > ./backend/.env-non-dev
 
-    # 6. Проверка Docker Compose
+    # 8. Проверка Docker Compose
     - name: Lint Docker Compose
       run: docker-compose -f ./backend/docker-compose.yaml config
 
-    # 7. Сборка Docker образов
+    # 9. Сборка Docker образов с версией
     - name: Build Docker images
       run: |
-        docker-compose -f ./backend/docker-compose.yaml build
+        VERSION="${{ needs.version.outputs.version }}"
+        cd ./backend
+        docker-compose build --build-arg VERSION=$VERSION
+        # Тегируем образы версией
+        docker tag vpn_api_backend:latest vpn_api_backend:$VERSION || true
 
-    # 8. Копирование файлов на сервер
+    # 10. Копирование файлов на сервер
     - name: Deploy files to server
       run: |
         ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USERNAME }}@${{ secrets.SERVER_IP_ADDRESS }} "mkdir -p ~/vpn_api"
         rsync -avz --exclude=".git" ./backend ${{ secrets.SERVER_USERNAME }}@${{ secrets.SERVER_IP_ADDRESS }}:~/vpn_api
 
-    # 10. Запуск Docker Compose на сервере
+    # 11. Запуск Docker Compose на сервере
     - name: Restart application
       run: |
-        ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USERNAME }}@${{ secrets.SERVER_IP_ADDRESS }} << 'EOF'
+        VERSION="${{ needs.version.outputs.version }}"
+        ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USERNAME }}@${{ secrets.SERVER_IP_ADDRESS }} << EOF
           cd ~/vpn_api
           sudo docker-compose down
           sudo docker-compose build
           sudo docker-compose up -d
+          echo "Deployed version $VERSION"
         EOF
+
+  test:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+
+    - name: Install dependencies
+      run: |
+        cd backend
+        pip install uv
+        uv sync
+
+    - name: Run tests
+      run: |
+        cd backend
+        # Добавьте здесь команды для запуска тестов
+        echo "Tests would run here"

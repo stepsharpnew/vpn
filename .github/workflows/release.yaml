@@ -1,0 +1,127 @@
+name: Create Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_type:
+        description: 'Version bump type'
+        required: true
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+      skip_deploy:
+        description: 'Skip deployment'
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Calculate next version
+        id: version
+        run: |
+          # Получаем последний тег
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+          echo "Last tag: $LAST_TAG"
+          
+          # Убираем префикс 'v' если есть
+          LAST_VERSION=${LAST_TAG#v}
+          
+          # Разбиваем версию на части
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$LAST_VERSION"
+          
+          VERSION_TYPE="${{ inputs.version_type }}"
+          
+          case $VERSION_TYPE in
+            major)
+              MAJOR=$((MAJOR + 1))
+              MINOR=0
+              PATCH=0
+              ;;
+            minor)
+              MINOR=$((MINOR + 1))
+              PATCH=0
+              ;;
+            patch)
+              PATCH=$((PATCH + 1))
+              ;;
+          esac
+          
+          NEW_VERSION="$MAJOR.$MINOR.$PATCH"
+          echo "New version: $NEW_VERSION"
+          
+          echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "tag=v$NEW_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Update version in pyproject.toml
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          sed -i "s/^version = \".*\"/version = \"$VERSION\"/" ./backend/pyproject.toml
+          echo "Updated backend version to $VERSION"
+          cat ./backend/pyproject.toml | grep "^version"
+
+      - name: Update version in pubspec.yaml
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          BUILD_NUMBER=$(echo "$VERSION" | cut -d'.' -f3)
+          sed -i "s/^version: .*/version: $VERSION+$BUILD_NUMBER/" ./test_app/pubspec.yaml
+          echo "Updated frontend version to $VERSION+$BUILD_NUMBER"
+          cat ./test_app/pubspec.yaml | grep "^version"
+
+      - name: Create changelog entry
+        run: |
+          TAG="${{ steps.version.outputs.tag }}"
+          DATE=$(date +"%Y-%m-%d")
+          echo "## $TAG ($DATE)" >> /tmp/changelog.md
+          echo "" >> /tmp/changelog.md
+          echo "### Changes" >> /tmp/changelog.md
+          echo "- Version bump to $TAG" >> /tmp/changelog.md
+          echo "" >> /tmp/changelog.md
+
+      - name: Commit version changes
+        run: |
+          TAG="${{ steps.version.outputs.tag }}"
+          git add ./backend/pyproject.toml ./test_app/pubspec.yaml
+          git commit -m "chore: bump version to $TAG" || echo "No changes to commit"
+          git push origin main
+
+      - name: Create git tag
+        run: |
+          TAG="${{ steps.version.outputs.tag }}"
+          git tag -a "$TAG" -m "Release $TAG"
+          git push origin "$TAG"
+
+      - name: Create GitHub Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          release_name: Release ${{ steps.version.outputs.tag }}
+          body_path: /tmp/changelog.md
+          draft: false
+          prerelease: false
+
+      - name: Output version info
+        run: |
+          echo "::notice title=Version Created::Version ${{ steps.version.outputs.tag }} has been created and pushed"
+          echo "Version: ${{ steps.version.outputs.tag }}"
+          echo "Version type: ${{ inputs.version_type }}"
