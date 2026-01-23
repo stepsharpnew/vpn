@@ -10,20 +10,23 @@ detect_version_type() {
     local branch_name=$1
     
     # Паттерны для определения типа версии
+    # Поддерживаются варианты: "feature", "feat:", "feat/", "feat-", "feat ", "feature-something" и т.д.
+    
     # major: major, breaking, !
-    if echo "$branch_name" | grep -qiE '(major|breaking|!)(:|/|-|\s)'; then
+    # Паттерн: слово в начале или после разделителя, с разделителем после или в конце строки
+    if echo "$branch_name" | grep -qiE '(^|/|-|_|\s)(major|breaking|!)(:|/|-|\s|$)'; then
         echo "major"
         return
     fi
     
     # minor: feat, feature, minor
-    if echo "$branch_name" | grep -qiE '(feat|feature|minor)(:|/|-|\s)'; then
+    if echo "$branch_name" | grep -qiE '(^|/|-|_|\s)(feat|feature|minor)(:|/|-|\s|$)'; then
         echo "minor"
         return
     fi
     
     # patch: fix, patch, bug
-    if echo "$branch_name" | grep -qiE '(fix|patch|bug)(:|/|-|\s)'; then
+    if echo "$branch_name" | grep -qiE '(^|/|-|_|\s)(fix|patch|bug)(:|/|-|\s|$)'; then
         echo "patch"
         return
     fi

@@ -37,26 +37,28 @@ jobs:
           
           # Определяем тип версии на основе паттернов в названии ветки
           # Паттерны: major(major|breaking|!), minor(feat|feature|minor), patch(fix|patch|bug)
+          # Поддерживаются варианты: "feature", "feat:", "feat/", "feat-", "feat ", "feature-something" и т.д.
           VERSION_TYPE="patch"  # По умолчанию patch
           
           # Проверяем паттерны для major версии: major, breaking, !
-          if echo "$BRANCH_NAME" | grep -qiE '(major|breaking|!)(:|/|-|\s)'; then
+          # Паттерн: слово в начале или после разделителя, с разделителем после или в конце строки
+          if echo "$BRANCH_NAME" | grep -qiE '(^|/|-|_|\s)(major|breaking|!)(:|/|-|\s|$)'; then
             VERSION_TYPE="major"
             echo "✓ Detected MAJOR version bump (major/breaking/! in branch name)"
           # Проверяем паттерны для minor версии: feat, feature, minor
-          elif echo "$BRANCH_NAME" | grep -qiE '(feat|feature|minor)(:|/|-|\s)'; then
+          elif echo "$BRANCH_NAME" | grep -qiE '(^|/|-|_|\s)(feat|feature|minor)(:|/|-|\s|$)'; then
             VERSION_TYPE="minor"
             echo "✓ Detected MINOR version bump (feat/feature/minor in branch name)"
           # Проверяем паттерны для patch версии: fix, patch, bug
-          elif echo "$BRANCH_NAME" | grep -qiE '(fix|patch|bug)(:|/|-|\s)'; then
+          elif echo "$BRANCH_NAME" | grep -qiE '(^|/|-|_|\s)(fix|patch|bug)(:|/|-|\s|$)'; then
             VERSION_TYPE="patch"
             echo "✓ Detected PATCH version bump (fix/patch/bug in branch name)"
           else
             echo "⚠ No pattern matched in branch name, defaulting to PATCH version bump"
             echo "  Supported patterns:"
-            echo "    - MAJOR: major, breaking, ! (with : / - or space)"
-            echo "    - MINOR: feat, feature, minor (with : / - or space)"
-            echo "    - PATCH: fix, patch, bug (with : / - or space)"
+            echo "    - MAJOR: major, breaking, ! (e.g., 'major', 'major:', 'breaking-change', '!refactor')"
+            echo "    - MINOR: feat, feature, minor (e.g., 'feature', 'feat:', 'minor-update')"
+            echo "    - PATCH: fix, patch, bug (e.g., 'fix', 'fix:', 'bug-fix')"
           fi
           
           # Получаем последний тег (если есть)
