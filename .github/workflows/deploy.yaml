@@ -37,26 +37,28 @@ jobs:
           
           # Определяем тип версии на основе паттернов в названии ветки
           # Паттерны: major(major|breaking|!), minor(feat|feature|minor), patch(fix|patch|bug)
+          # Поддерживаются варианты: "feature", "feat:", "feat/", "feat-", "feat ", "feature-something" и т.д.
           VERSION_TYPE="patch"  # По умолчанию patch
           
           # Проверяем паттерны для major версии: major, breaking, !
-          if echo "$BRANCH_NAME" | grep -qiE '(major|breaking|!)(:|/|-|\s)'; then
+          # Паттерн: слово в начале или после разделителя, с разделителем после или в конце строки
+          if echo "$BRANCH_NAME" | grep -qiE '(^|/|-|_|\s)(major|breaking|!)(:|/|-|\s|$)'; then
             VERSION_TYPE="major"
             echo "✓ Detected MAJOR version bump (major/breaking/! in branch name)"
           # Проверяем паттерны для minor версии: feat, feature, minor
-          elif echo "$BRANCH_NAME" | grep -qiE '(feat|feature|minor)(:|/|-|\s)'; then
+          elif echo "$BRANCH_NAME" | grep -qiE '(^|/|-|_|\s)(feat|feature|minor)(:|/|-|\s|$)'; then
             VERSION_TYPE="minor"
             echo "✓ Detected MINOR version bump (feat/feature/minor in branch name)"
           # Проверяем паттерны для patch версии: fix, patch, bug
-          elif echo "$BRANCH_NAME" | grep -qiE '(fix|patch|bug)(:|/|-|\s)'; then
+          elif echo "$BRANCH_NAME" | grep -qiE '(^|/|-|_|\s)(fix|patch|bug)(:|/|-|\s|$)'; then
             VERSION_TYPE="patch"
             echo "✓ Detected PATCH version bump (fix/patch/bug in branch name)"
           else
             echo "⚠ No pattern matched in branch name, defaulting to PATCH version bump"
             echo "  Supported patterns:"
-            echo "    - MAJOR: major, breaking, ! (with : / - or space)"
-            echo "    - MINOR: feat, feature, minor (with : / - or space)"
-            echo "    - PATCH: fix, patch, bug (with : / - or space)"
+            echo "    - MAJOR: major, breaking, ! (e.g., 'major', 'major:', 'breaking-change', '!refactor')"
+            echo "    - MINOR: feat, feature, minor (e.g., 'feature', 'feat:', 'minor-update')"
+            echo "    - PATCH: fix, patch, bug (e.g., 'fix', 'fix:', 'bug-fix')"
           fi
           
           # Получаем последний тег (если есть)
@@ -111,6 +113,7 @@ jobs:
       with:
         fetch-depth: 0
         token: ${{ secrets.GITHUB_TOKEN }}
+        ref: main
 
     # 2. Настройка Git для создания тегов
     - name: Configure Git
@@ -139,16 +142,44 @@ jobs:
         VERSION="${{ needs.version.outputs.version }}"
         TAG="v$VERSION"
         
-        # Коммитим изменения версий
-        git add ./backend/pyproject.toml ./test_app/pubspec.yaml
-        git commit -m "chore: bump version to $TAG" || echo "No changes to commit"
+        echo "Creating tag: $TAG"
         
-        # Создаем тег
-        git tag -a "$TAG" -m "Release $TAG"
+        # Получаем последние изменения
+        git fetch origin main || true
         
-        # Пушим изменения и теги
-        git push origin main
-        git push origin "$TAG"
+        # Проверяем, существует ли тег на удаленном репозитории
+        if git ls-remote --tags origin "$TAG" | grep -q "$TAG"; then
+          echo "⚠ Tag $TAG already exists on remote, skipping tag creation"
+        else
+          # Коммитим изменения версий (если есть изменения)
+          git add ./backend/pyproject.toml ./test_app/pubspec.yaml || true
+          
+          if git diff --staged --quiet; then
+            echo "ℹ No version changes to commit (versions may already be up to date)"
+          else
+            echo "📝 Committing version changes..."
+            git commit -m "chore: bump version to $TAG"
+            git push origin main
+            echo "✓ Version changes committed and pushed"
+          fi
+          
+          # Создаем тег на текущем коммите (если тег еще не существует локально)
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "⚠ Tag $TAG already exists locally, deleting and recreating..."
+            git tag -d "$TAG" || true
+          fi
+          
+          echo "🏷 Creating tag $TAG..."
+          git tag -a "$TAG" -m "Release $TAG"
+          
+          # Пушим тег
+          echo "📤 Pushing tag $TAG..."
+          git push origin "$TAG" || {
+            echo "❌ Failed to push tag, trying force push..."
+            git push origin "$TAG" --force || true
+          }
+          echo "✅ Tag $TAG created and pushed successfully"
+        fi
 
     # 5. Настройка SSH
     - name: Set up SSH
@@ -168,16 +199,41 @@ jobs:
 
     # 8. Проверка Docker Compose
     - name: Lint Docker Compose
-      run: docker-compose -f ./backend/docker-compose.yaml config
+      run: |
+        cd ./backend
+        echo "Validating docker-compose.yaml..."
+        docker-compose config
+        echo "✓ Docker Compose configuration is valid"
 
     # 9. Сборка Docker образов с версией
     - name: Build Docker images
       run: |
+        set -e
         VERSION="${{ needs.version.outputs.version }}"
         cd ./backend
-        docker-compose build --build-arg VERSION=$VERSION
-        # Тегируем образы версией
-        docker tag vpn_api_backend:latest vpn_api_backend:$VERSION || true
+        
+        echo "🔨 Building Docker images..."
+        echo "Working directory: $(pwd)"
+        echo "Docker Compose file: $(ls -la docker-compose.yaml)"
+        
+        # Собираем образы
+        docker-compose build --no-cache
+        
+        echo "✓ Docker images built successfully"
+        
+        # Показываем созданные образы
+        echo "📦 Built images:"
+        docker images | grep -E "(vpn_api|REPOSITORY)" || docker images
+        
+        # Тегируем образы версией (если образ существует)
+        if docker images --format "{{.Repository}}" | grep -q "vpn_api_backend"; then
+          docker tag vpn_api_backend:latest vpn_api_backend:$VERSION || true
+          echo "✓ Tagged image with version $VERSION"
+        else
+          echo "⚠ Warning: vpn_api_backend image not found after build"
+          echo "Available images:"
+          docker images
+        fi
 
     # 10. Копирование файлов на сервер
     - name: Deploy files to server
