@@ -1,5 +1,5 @@
-import uuid_utils
 import bcrypt
+import uuid_utils
 from datetime import datetime, timedelta, timezone
 from jose import jwt
 from pydantic import EmailStr
