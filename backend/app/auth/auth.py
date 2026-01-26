@@ -4,7 +4,6 @@ from datetime import datetime, timedelta, timezone
 from jose import jwt
 from pydantic import EmailStr
 
-
 from app.users.dao import UsersDAO
 from app.config import settings
 from app.exceptions import NoAccess
