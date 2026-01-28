@@ -42,6 +42,12 @@ async def connect_request(location: str, user: Users = Depends(get_current_user)
         # Создаем client
         client_data = await api_client.create_peer(server_ip=server.server_ip, name=user["email"])
         client_data = client_data.get("client")
+        
+        # Добавляем IP адрес сервера WebUI API в ответ (хардкод)
+        client_data["ip_address"] = "206.251.48.124"
+        # Добавляем server_ip для получения конфига через API
+        client_data["server_ip"] = server.server_ip
+        
         return client_data
         # # Сохраняем сессию в БД
         # session = await SessionsDAO.add(

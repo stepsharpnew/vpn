@@ -165,27 +165,11 @@ class _HomeScreenState extends State<HomeScreen> {
         throw Exception('Не удалось получить данные сессии');
       }
 
-      // Пробуем получить адрес WebUI API сервера
-      // ВАЖНО: Для работы VPN нужен адрес сервера с Amnezia WebUI API (обычно на порту 5000)
-      // Временное решение: используем server_name или требуем указать адрес
-      // В будущем можно добавить server_ip в ответ /sessions/connect
-      String? serverWebUiAddress;
+      // Используем адрес WebUI API из сессии (добавлен хардкодом в ApiService)
+      final serverWebUiAddress = session.serverWebUiAddress;
       
-      // Пробуем извлечь IP из server_name (если там IP адрес)
-      if (session.serverName.isNotEmpty) {
-        // Проверяем, является ли server_name IP адресом
-        final ipRegex = RegExp(r'^(\d{1,3}\.){3}\d{1,3}$');
-        if (ipRegex.hasMatch(session.serverName)) {
-          serverWebUiAddress = session.serverName;
-        }
-      }
-      
-      // Если не удалось извлечь адрес, используем дефолтный или требуем указать
-      // TODO: В будущем добавить server_ip в ответ /sessions/connect или получить отдельным запросом
-      if (serverWebUiAddress == null || serverWebUiAddress.isEmpty) {
-        // Временное решение: используем дефолтный адрес или требуем указать
-        // В реальности нужно получить адрес из backend
-        throw Exception('Необходимо указать адрес сервера WebUI API. Добавьте server_ip в ответ /sessions/connect или укажите адрес вручную.');
+      if (serverWebUiAddress.isEmpty) {
+        throw Exception('Адрес сервера WebUI API не найден в сессии');
       }
 
       // Подключаемся к VPN используя сохраненную сессию и адрес WebUI API

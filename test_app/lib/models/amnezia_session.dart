@@ -12,6 +12,8 @@ class AmneziaSession {
   final String serverId;
   final String serverName;
   final String status;
+  final String serverWebUiAddress; // Адрес сервера с Amnezia WebUI API
+  final String serverIp; // IP адрес сервера WireGuard (server_ip из backend)
 
   AmneziaSession({
     required this.clientIp,
@@ -26,6 +28,8 @@ class AmneziaSession {
     required this.serverId,
     required this.serverName,
     required this.status,
+    required this.serverWebUiAddress,
+    required this.serverIp,
   });
 
   factory AmneziaSession.fromJson(Map<String, dynamic> json) {
@@ -42,6 +46,8 @@ class AmneziaSession {
       serverId: json['server_id'] as String? ?? '',
       serverName: json['server_name'] as String? ?? '',
       status: json['status'] as String? ?? 'inactive',
+      serverWebUiAddress: json['ip_address'] as String? ?? '', // ip_address приходит из backend
+      serverIp: json['server_ip'] as String? ?? '', // server_ip приходит из backend
     );
   }
 
@@ -59,6 +65,8 @@ class AmneziaSession {
       'server_id': serverId,
       'server_name': serverName,
       'status': status,
+      'ip_address': serverWebUiAddress, // Сохраняем как ip_address для совместимости с backend
+      'server_ip': serverIp, // Сохраняем server_ip для получения конфига
     };
   }
 }

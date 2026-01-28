@@ -6,17 +6,56 @@ import 'package:test_app/models/amnezia_session.dart';
 class AmneziaApiService {
   /// Получить WireGuard конфигурацию для peer через Amnezia WebUI API
   /// serverIp: IP адрес сервера (где запущен WebUI API, обычно на порту 5000)
-  /// peerId: ID peer (client_public_key из сессии)
-  static Future<String> getPeerConfig(String serverIp, String peerId) async {
-    final url = Uri.parse('http://$serverIp:5000/api/peers/$peerId/config');
+  /// peerId: ID peer - пробуем разные варианты (id, client_public_key)
+  /// serverIpAddress: IP адрес сервера WireGuard (server_ip из backend, опционально)
+  static Future<String> getPeerConfig(String serverIp, String peerId, {String? serverIpAddress}) async {
+    // В Amnezia WebUI API для получения конфига используется client_public_key, а не id
+    // Формат: /api/servers/{server_ip}/clients/{client_public_key}/config
+    // Но также пробуем другие варианты
     
-    final response = await http.get(url);
+    final urls = <Uri>[];
     
-    if (response.statusCode != 200) {
-      throw Exception('Ошибка получения конфигурации: ${response.statusCode} - ${response.body}');
+    // Если есть server_ip, используем его (основной вариант)
+    if (serverIpAddress != null && serverIpAddress.isNotEmpty) {
+      // Основной вариант: /api/servers/{server_ip}/clients/{client_public_key}/config
+      urls.add(Uri.parse('http://$serverIp:5000/api/servers/$serverIpAddress/clients/$peerId/config'));
     }
     
-    return response.body;
+    // Альтернативные варианты
+    urls.addAll([
+      Uri.parse('http://$serverIp:5000/api/peers/$peerId/config'),
+      Uri.parse('http://$serverIp:5000/api/clients/$peerId/config'),
+      Uri.parse('http://$serverIp:5000/api/servers/awg0/clients/$peerId/config'),
+      Uri.parse('http://$serverIp:5000/api/servers/awg0/peers/$peerId/config'),
+    ]);
+    
+    Exception? lastError;
+    String? lastResponseBody;
+    
+    for (final url in urls) {
+      try {
+        final response = await http.get(url);
+        
+        if (response.statusCode == 200) {
+          return response.body;
+        } else {
+          lastError = Exception('HTTP ${response.statusCode}');
+          lastResponseBody = response.body;
+          // Пробуем следующий URL
+          continue;
+        }
+      } catch (e) {
+        lastError = Exception('Ошибка запроса: $e');
+        continue;
+      }
+    }
+    
+    final errorMsg = 'Не удалось получить конфигурацию для peer ID: $peerId\n'
+        'Пробовали URL: ${urls.map((u) => u.toString()).join(", ")}\n'
+        'Последняя ошибка: ${lastError?.toString() ?? "неизвестно"}\n'
+        'Ответ сервера: ${lastResponseBody ?? "нет"}';
+    
+    throw Exception(errorMsg);
   }
 
   /// Парсинг WireGuard конфига в структурированный формат

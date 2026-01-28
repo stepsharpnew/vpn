@@ -45,7 +45,9 @@ class ApiService {
     }
     
     final jsonData = jsonDecode(response.body) as Map<String, dynamic>;
+    
     // Прячем весь ответ /sessions/connect в secure storage (для последующего подключения AmneziaWG)
+    // ip_address уже добавлен в ответ backend
     await StorageService.saveLastConnectResponseJson(jsonEncode(jsonData));
     return VpnConfig.fromJson(jsonData);
   }

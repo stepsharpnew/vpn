@@ -66,10 +66,26 @@ class VpnService {
 
   /// Получить полный WireGuard конфиг через Amnezia WebUI API
   /// serverWebUiAddress: адрес сервера с WebUI API (например, "192.168.1.100" или "vpn.example.com")
-  /// peerId: ID peer (client_public_key из сессии)
-  static Future<String> getWireGuardConfigFromApi(String serverWebUiAddress, String peerId) async {
+  /// session: сессия AmneziaWG с данными peer
+  static Future<String> getWireGuardConfigFromApi(String serverWebUiAddress, AmneziaSession session) async {
     try {
-      return await AmneziaApiService.getPeerConfig(serverWebUiAddress, peerId);
+      // Пробуем использовать client_public_key (основной вариант для Amnezia WebUI API)
+      // Формат: /api/servers/{server_ip}/clients/{client_public_key}/config
+      // Также пробуем id на случай если API использует его
+      try {
+        return await AmneziaApiService.getPeerConfig(
+          serverWebUiAddress, 
+          session.clientPublicKey,
+          serverIpAddress: session.serverIp.isNotEmpty ? session.serverIp : null,
+        );
+      } catch (e) {
+        // Если не получилось с client_public_key, пробуем с id
+        return await AmneziaApiService.getPeerConfig(
+          serverWebUiAddress, 
+          session.id,
+          serverIpAddress: session.serverIp.isNotEmpty ? session.serverIp : null,
+        );
+      }
     } catch (e) {
       throw Exception('Не удалось получить конфигурацию через Amnezia WebUI API: $e');
     }
@@ -88,8 +104,8 @@ class VpnService {
       
       // Пробуем получить конфиг через Amnezia WebUI API
       if (serverWebUiAddress != null && serverWebUiAddress.isNotEmpty) {
-        // Используем переданный адрес
-        wireGuardConfig = await getWireGuardConfigFromApi(serverWebUiAddress, session.clientPublicKey);
+        // Используем переданный адрес и сессию (пробуем client_public_key и id)
+        wireGuardConfig = await getWireGuardConfigFromApi(serverWebUiAddress, session);
       } else {
         // Пробуем извлечь адрес из server_name или использовать дефолтный
         // В реальности server_name может содержать IP или домен
