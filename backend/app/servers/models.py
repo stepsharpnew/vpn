@@ -14,6 +14,8 @@ class Servers(Base):
     name_server: Mapped[str_null]
     location: Mapped[str_null]
     ip_address: Mapped[str_null]
+    port_api: Mapped[str_null]
+    server_ip: Mapped[str_null]
     port: Mapped[str_null]
     dns: Mapped[str_null]
     public_key: Mapped[str_null]
