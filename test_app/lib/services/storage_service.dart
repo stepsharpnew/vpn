@@ -9,6 +9,7 @@ class StorageService {
   static const String _isVipKey = 'is_vip';
   static const String _accessTokenKey = 'access_token';
   static const String _refreshTokenKey = 'refresh_token';
+  static const String _lastConnectResponseKey = 'last_connect_response_json';
   
   /// Получить device_id или сгенерировать новый
   static Future<String> getDeviceId() async {
@@ -53,6 +54,20 @@ class StorageService {
   static Future<void> clearTokens() async {
     await _storage.delete(key: _accessTokenKey);
     await _storage.delete(key: _refreshTokenKey);
+  }
+
+  /// Сохранить последний ответ /sessions/connect целиком (JSON строка)
+  static Future<void> saveLastConnectResponseJson(String json) async {
+    await _storage.write(key: _lastConnectResponseKey, value: json);
+  }
+
+  /// Получить последний ответ /sessions/connect (JSON строка)
+  static Future<String?> getLastConnectResponseJson() async {
+    return await _storage.read(key: _lastConnectResponseKey);
+  }
+
+  static Future<void> clearLastConnectResponse() async {
+    await _storage.delete(key: _lastConnectResponseKey);
   }
   
   /// Проверить, есть ли access token
