@@ -4,11 +4,7 @@ import 'package:test_app/constants/app_colors.dart';
 import 'package:test_app/models/server.dart';
 import 'package:test_app/widgets/golden_border.dart';
 
-enum ServerSelectionState {
-  disconnected,
-  connecting,
-  connected,
-}
+enum ServerSelectionState { disconnected, connecting, connected }
 
 /// Выезжающая панель выбора сервера (2/3 экрана)
 class ServerSelectionBottomSheet extends StatelessWidget {
@@ -92,7 +88,10 @@ class ServerSelectionBottomSheet extends StatelessWidget {
                       onTap: isDisabled ? null : () => onServerSelected(server),
                       borderRadius: BorderRadius.circular(14),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 14,
+                        ),
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
                             colors: [
@@ -104,63 +103,65 @@ class ServerSelectionBottomSheet extends StatelessWidget {
                           ),
                           borderRadius: BorderRadius.circular(14),
                         ),
-                          child: Row(
-                            children: [
-                              SizedBox(
-                                width: 34,
-                                height: 34,
-                                child: Lottie.asset(
-                                  'assets/animatios/Premium_CallerID.json',
-                                  repeat: true,
-                                  animate: true,
-                                  frameRate: FrameRate.max,
-                                  options: LottieOptions(enableMergePaths: true),
-                                ),
+                        child: Row(
+                          children: [
+                            SizedBox(
+                              width: 34,
+                              height: 34,
+                              child: Lottie.asset(
+                                'assets/animatios/Premium_CallerID.json',
+                                repeat: true,
+                                animate: true,
+                                frameRate: FrameRate.max,
+                                options: LottieOptions(enableMergePaths: true),
                               ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      server.name,
-                                      style: TextStyle(
-                                        color: isDisabled ? AppColors.textSecondary : AppColors.textPrimary,
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w800,
-                                      ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    server.name,
+                                    style: TextStyle(
+                                      color: isDisabled
+                                          ? AppColors.textSecondary
+                                          : AppColors.textPrimary,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w800,
                                     ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      'Открыть тарифные планы',
-                                      style: TextStyle(
-                                        color: AppColors.textSecondary.withOpacity(0.9),
-                                        fontSize: 12,
-                                      ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    'Открыть тарифные планы',
+                                    style: TextStyle(
+                                      color: AppColors.textSecondary
+                                          .withOpacity(0.9),
+                                      fontSize: 12,
                                     ),
-                                  ],
-                                ),
+                                  ),
+                                ],
                               ),
-                              const SizedBox(width: 10),
-                              SizedBox(
-                                width: 64,
-                                height: 34,
-                                child: Lottie.asset(
-                                  'assets/animatios/Pro Animation 3rd.json',
-                                  repeat: true,
-                                  animate: true,
-                                  frameRate: FrameRate.max,
-                                  options: LottieOptions(enableMergePaths: true),
-                                ),
+                            ),
+                            const SizedBox(width: 10),
+                            SizedBox(
+                              width: 64,
+                              height: 34,
+                              child: Lottie.asset(
+                                'assets/animatios/Pro Animation 3rd.json',
+                                repeat: true,
+                                animate: true,
+                                frameRate: FrameRate.max,
+                                options: LottieOptions(enableMergePaths: true),
                               ),
-                              const SizedBox(width: 6),
-                              Icon(
-                                Icons.arrow_forward_ios,
-                                size: 16,
-                                color: AppColors.textSecondary.withOpacity(0.9),
-                              ),
-                            ],
-                          ),
+                            ),
+                            const SizedBox(width: 6),
+                            Icon(
+                              Icons.arrow_forward_ios,
+                              size: 16,
+                              color: AppColors.textSecondary.withOpacity(0.9),
+                            ),
+                          ],
                         ),
                       ),
                     ),
@@ -196,73 +197,73 @@ class ServerSelectionBottomSheet extends StatelessWidget {
                             : AppColors.darkBackground.withOpacity(0.5),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                        child: Row(
-                          children: [
-                            // Иконка или флаг
-                            if (server.isAuto)
-                              Container(
-                                width: 32,
-                                height: 32,
-                                decoration: BoxDecoration(
-                                  color: AppColors.neonPurple.withOpacity(0.3),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const Icon(
-                                  Icons.auto_awesome,
-                                  color: AppColors.neonPurple,
-                                  size: 20,
-                                ),
-                              )
-                            else
-                              Container(
-                                width: 32,
-                                height: 32,
-                                decoration: BoxDecoration(
-                                  color: AppColors.neonBlue.withOpacity(0.3),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const Icon(
-                                  Icons.location_on,
-                                  color: AppColors.neonBlue,
-                                  size: 20,
-                                ),
+                      child: Row(
+                        children: [
+                          // Иконка или флаг
+                          if (server.isAuto)
+                            Container(
+                              width: 32,
+                              height: 32,
+                              decoration: BoxDecoration(
+                                color: AppColors.neonPurple.withOpacity(0.3),
+                                shape: BoxShape.circle,
                               ),
-                            const SizedBox(width: 16),
-                            // Название сервера
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    server.name,
-                                    style: TextStyle(
-                                      color: isDisabled
-                                          ? AppColors.textSecondary
-                                          : AppColors.textPrimary,
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                  if (!server.isAuto && server.location.isNotEmpty)
-                                    Text(
-                                      server.location,
-                                      style: TextStyle(
-                                        color: AppColors.textSecondary,
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                ],
+                              child: const Icon(
+                                Icons.auto_awesome,
+                                color: AppColors.neonPurple,
+                                size: 20,
+                              ),
+                            )
+                          else
+                            Container(
+                              width: 32,
+                              height: 32,
+                              decoration: BoxDecoration(
+                                color: AppColors.neonBlue.withOpacity(0.3),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.location_on,
+                                color: AppColors.neonBlue,
+                                size: 20,
                               ),
                             ),
-                            // Индикатор выбора
-                            if (isSelected)
-                              const Icon(
-                                Icons.check_circle,
-                                color: AppColors.neonBlue,
-                                size: 24,
-                              ),
-                          ],
-                        ),
+                          const SizedBox(width: 16),
+                          // Название сервера
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  server.name,
+                                  style: TextStyle(
+                                    color: isDisabled
+                                        ? AppColors.textSecondary
+                                        : AppColors.textPrimary,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                if (!server.isAuto &&
+                                    server.location.isNotEmpty)
+                                  Text(
+                                    server.location,
+                                    style: const TextStyle(
+                                      color: AppColors.textSecondary,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                          // Индикатор выбора
+                          if (isSelected)
+                            const Icon(
+                              Icons.check_circle,
+                              color: AppColors.neonBlue,
+                              size: 24,
+                            ),
+                        ],
                       ),
                     ),
                   ),
@@ -335,11 +336,7 @@ class ServerSelectionBottomSheet extends StatelessWidget {
             ),
           )
         else
-          Icon(
-            icon,
-            size: 16,
-            color: color,
-          ),
+          Icon(icon, size: 16, color: color),
         const SizedBox(width: 8),
         Text(
           text,
@@ -353,4 +350,3 @@ class ServerSelectionBottomSheet extends StatelessWidget {
     );
   }
 }
-

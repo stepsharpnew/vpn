@@ -45,6 +45,10 @@ class ApiService {
     }
     
     final jsonData = jsonDecode(response.body) as Map<String, dynamic>;
+    
+    // Прячем весь ответ /sessions/connect в secure storage (для последующего подключения AmneziaWG)
+    // ip_address уже добавлен в ответ backend
+    await StorageService.saveLastConnectResponseJson(jsonEncode(jsonData));
     return VpnConfig.fromJson(jsonData);
   }
   
@@ -106,6 +110,29 @@ class ApiService {
     
     await StorageService.saveAccessToken(newAccessToken);
     return true;
+  }
+
+  /// Регистрация пользователя (привязка email/password к текущему device_id)
+  /// Важно: backend возвращает пользователя, а не токены. Обычно после register нужно сделать login.
+  static Future<void> register(String email, String password) async {
+    final url = Uri.parse('$baseUrl/auth/register');
+    final deviceId = await StorageService.getDeviceId();
+
+    final response = await http.post(
+      url,
+      headers: {
+        'Content-Type': 'application/json',
+        'Device_id': deviceId,
+      },
+      body: jsonEncode({
+        'email': email,
+        'password': password,
+      }),
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception('Ошибка регистрации: ${response.statusCode} - ${response.body}');
+    }
   }
   
   /// Логин пользователя

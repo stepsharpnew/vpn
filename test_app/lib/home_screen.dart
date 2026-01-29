@@ -3,6 +3,7 @@ import 'package:test_app/constants/app_colors.dart';
 import 'package:test_app/models/server.dart';
 import 'package:test_app/services/api_service.dart';
 import 'package:test_app/services/storage_service.dart';
+import 'package:test_app/services/vpn_service.dart';
 import 'package:test_app/widgets/app_drawer.dart';
 import 'package:test_app/widgets/connect_button.dart';
 import 'package:test_app/widgets/gradient_background.dart';
@@ -38,9 +39,14 @@ class _HomeScreenState extends State<HomeScreen> {
       // Инициализируем device_id и is_vip при первом запуске
       final deviceId = await StorageService.getDeviceId();
       final isVip = await StorageService.getIsVip(); // Инициализирует is_vip как false, если еще не установлен
+      
+      // Проверяем статус VPN подключения
+      final isConnected = await VpnService.isConnected();
+      
       setState(() {
         _deviceId = deviceId;
         _isVip = isVip;
+        _isConnected = isConnected;
       });
       
       // Загружаем список серверов
@@ -99,8 +105,38 @@ class _HomeScreenState extends State<HomeScreen> {
     if (_isConnected) {
       // Отключение
       setState(() {
-        _isConnected = false;
+        _isLoading = true;
       });
+
+      try {
+        await VpnService.disconnect();
+        await VpnService.clearSession();
+        
+        setState(() {
+          _isConnected = false;
+          _isLoading = false;
+        });
+
+        if (mounted) {
+          TopNotification.show(
+            context: context,
+            message: 'Отключено от VPN',
+            type: NotificationType.success,
+          );
+        }
+      } catch (e) {
+        setState(() {
+          _isLoading = false;
+        });
+
+        if (mounted) {
+          TopNotification.show(
+            context: context,
+            message: 'Ошибка отключения: $e',
+            type: NotificationType.error,
+          );
+        }
+      }
       return;
     }
 
@@ -119,14 +155,30 @@ class _HomeScreenState extends State<HomeScreen> {
       // Он автоматически определяет, есть ли access token и использует его
       // Используем выбранный сервер, или "all" если выбран Auto
       final location = _selectedServer.isAuto ? 'all' : _selectedServer.location;
-      
-      // Добавляем задержку 2 секунды для имитации подключения
-      await Future.delayed(const Duration(seconds: 2));
-      
+
+      // Получаем конфигурацию от backend (сессия AmneziaWG уже сохранена в secure storage)
       await ApiService.getVpnConfig(location: location);
 
-      // Здесь должна быть логика подключения к VPN серверу
-      // Пока просто сохраняем конфигурацию
+      // Получаем сессию для извлечения данных сервера
+      final session = await VpnService.getSavedSession();
+      if (session == null) {
+        throw Exception('Не удалось получить данные сессии');
+      }
+
+      // Используем адрес WebUI API из сессии (добавлен хардкодом в ApiService)
+      final serverWebUiAddress = session.serverWebUiAddress;
+      
+      if (serverWebUiAddress.isEmpty) {
+        throw Exception('Адрес сервера WebUI API не найден в сессии');
+      }
+
+      // Подключаемся к VPN используя сохраненную сессию и адрес WebUI API
+      final connected = await VpnService.connect(serverWebUiAddress: serverWebUiAddress);
+      
+      if (!connected) {
+        throw Exception('Не удалось подключиться к VPN');
+      }
+
       setState(() {
         _isConnected = true;
         _isLoading = false;
@@ -235,6 +287,15 @@ class _HomeScreenState extends State<HomeScreen> {
               _isVip = isVip;
             });
             await _loadServers(); // Перезагружаем список серверов
+          }
+        },
+        onAuthChanged: () async {
+          final isVip = await StorageService.getIsVip();
+          if (mounted) {
+            setState(() {
+              _isVip = isVip;
+            });
+            await _loadServers();
           }
         },
       ),

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
-import 'package:test_app/constants/app_colors.dart';
 
 /// Виджет с позолоченной переливающейся рамкой
 class GoldenBorder extends StatefulWidget {
@@ -68,10 +67,13 @@ class _GoldenBorderState extends State<GoldenBorder>
     final value = _controller.value;
     // Создаем переливающийся эффект от золотого к желтому и обратно
     // Золотой цвет: HSL примерно (45-50, 0.8-1.0, 0.5-0.6)
-    final hue = 45 + (math.sin(value * math.pi * 2) * 10); // От 35 до 55 (золотой диапазон)
-    final saturation = 0.85 + (math.sin(value * math.pi * 2 + math.pi / 2) * 0.15); // 0.7-1.0
+    final hue =
+        45 +
+        (math.sin(value * math.pi * 2) * 10); // От 35 до 55 (золотой диапазон)
+    final saturation =
+        0.85 + (math.sin(value * math.pi * 2 + math.pi / 2) * 0.15); // 0.7-1.0
     final lightness = 0.55 + (math.sin(value * math.pi * 2) * 0.1); // 0.45-0.65
-    
+
     return HSLColor.fromAHSL(
       1.0,
       hue.clamp(35.0, 55.0),

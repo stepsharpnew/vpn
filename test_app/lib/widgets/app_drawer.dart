@@ -8,8 +8,9 @@ import 'package:test_app/widgets/top_notification.dart';
 /// Боковое меню приложения
 class AppDrawer extends StatefulWidget {
   final VoidCallback? onVipStatusChanged;
+  final VoidCallback? onAuthChanged;
 
-  const AppDrawer({super.key, this.onVipStatusChanged});
+  const AppDrawer({super.key, this.onVipStatusChanged, this.onAuthChanged});
 
   @override
   State<AppDrawer> createState() => _AppDrawerState();
@@ -18,17 +19,27 @@ class AppDrawer extends StatefulWidget {
 class _AppDrawerState extends State<AppDrawer> {
   bool _isVip = false;
   bool _isLoading = false;
+  bool _isLoggedIn = false;
 
   @override
   void initState() {
     super.initState();
     _loadVipStatus();
+    _loadAuthStatus();
   }
 
   Future<void> _loadVipStatus() async {
     final isVip = await StorageService.getIsVip();
     setState(() {
       _isVip = isVip;
+    });
+  }
+
+  Future<void> _loadAuthStatus() async {
+    final loggedIn = await StorageService.hasAccessToken();
+    if (!mounted) return;
+    setState(() {
+      _isLoggedIn = loggedIn;
     });
   }
 
@@ -82,6 +93,138 @@ class _AppDrawerState extends State<AppDrawer> {
         });
       }
     }
+  }
+
+  Future<void> _showAuthDialog({required bool isRegister}) async {
+    final emailController = TextEditingController();
+    final passwordController = TextEditingController();
+
+    try {
+      final result = await showDialog<bool>(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            backgroundColor: AppColors.darkSurface,
+            title: Text(
+              isRegister ? 'Регистрация' : 'Вход',
+              style: const TextStyle(
+                color: AppColors.textPrimary,
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: emailController,
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: const InputDecoration(
+                    labelText: 'Email',
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: passwordController,
+                  obscureText: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Пароль',
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text(
+                  'Отмена',
+                  style: TextStyle(color: AppColors.textSecondary),
+                ),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: Text(
+                  isRegister ? 'Зарегистрироваться' : 'Войти',
+                  style: const TextStyle(color: AppColors.neonBlue),
+                ),
+              ),
+            ],
+          );
+        },
+      );
+
+      if (result != true) return;
+
+      final email = emailController.text.trim();
+      final password = passwordController.text;
+      if (email.isEmpty || password.isEmpty) {
+        if (!mounted) return;
+        TopNotification.show(
+          context: context,
+          message: 'Введите email и пароль',
+          type: NotificationType.error,
+        );
+        return;
+      }
+
+      setState(() => _isLoading = true);
+
+      if (isRegister) {
+        // backend register не выдает токены → делаем login сразу после
+        await ApiService.register(email, password);
+      }
+
+      await ApiService.login(email, password);
+      // backend на login выставляет is_vip=True, синхронизируем локально
+      await StorageService.setIsVip(true);
+
+      if (!mounted) return;
+      setState(() {
+        _isLoggedIn = true;
+        _isVip = true;
+        _isLoading = false;
+      });
+
+      TopNotification.show(
+        context: context,
+        message: isRegister ? 'Регистрация выполнена, вы вошли' : 'Вы вошли',
+        type: NotificationType.success,
+      );
+
+      widget.onVipStatusChanged?.call();
+      widget.onAuthChanged?.call();
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+      TopNotification.show(
+        context: context,
+        message: 'Ошибка: $e',
+        type: NotificationType.error,
+      );
+    } finally {
+      emailController.dispose();
+      passwordController.dispose();
+    }
+  }
+
+  Future<void> _logout() async {
+    if (_isLoading) return;
+    setState(() => _isLoading = true);
+    await StorageService.clearTokens();
+    await StorageService.setIsVip(false);
+    if (!mounted) return;
+    setState(() {
+      _isLoggedIn = false;
+      _isVip = false;
+      _isLoading = false;
+    });
+    TopNotification.show(
+      context: context,
+      message: 'Вы вышли',
+      type: NotificationType.success,
+    );
+    widget.onVipStatusChanged?.call();
+    widget.onAuthChanged?.call();
   }
 
   @override
@@ -154,6 +297,67 @@ class _AppDrawerState extends State<AppDrawer> {
             child: ListView(
               padding: EdgeInsets.zero,
               children: [
+                // Auth actions
+                Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: AppColors.darkBackground.withOpacity(0.5),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: AppColors.textSecondary.withOpacity(0.3),
+                      width: 1,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            _isLoggedIn ? Icons.verified_user : Icons.person_outline,
+                            color: _isLoggedIn ? AppColors.connectedGreen : AppColors.textSecondary,
+                            size: 22,
+                          ),
+                          const SizedBox(width: 10),
+                          Text(
+                            _isLoggedIn ? 'Авторизован' : 'Гость',
+                            style: TextStyle(
+                              color: _isLoggedIn ? AppColors.connectedGreen : AppColors.textSecondary,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (_isLoading)
+                        const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      else if (_isLoggedIn)
+                        TextButton(
+                          onPressed: _logout,
+                          child: const Text('Выйти'),
+                        )
+                      else
+                        Row(
+                          children: [
+                            TextButton(
+                              onPressed: () => _showAuthDialog(isRegister: false),
+                              child: const Text('Войти'),
+                            ),
+                            const SizedBox(width: 8),
+                            TextButton(
+                              onPressed: () => _showAuthDialog(isRegister: true),
+                              child: const Text('Регистрация'),
+                            ),
+                          ],
+                        ),
+                    ],
+                  ),
+                ),
                 // Переключатель VIP
                 Container(
                   margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
